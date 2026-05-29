@@ -1,0 +1,40 @@
+{
+  "death.attack.anvil.player": "%1$s在与%2$s战斗时被下落的铁砧压扁了",
+  "death.attack.cactus.player": "%1$s在试图逃离%2$s时撞上了仙人掌",
+  "death.attack.cramming.player": "%1$s被%2$s挤扁了",
+  "death.attack.dragonBreath.player": "%1$s被%2$s的龙息烤熟了",
+  "death.attack.drown.player": "%1$s在试图逃离%2$s时淹死了",
+  "death.attack.dryout.player": "%1$s在试图逃离%2$s时因脱水而死",
+  "death.attack.explosion.player": "%1$s被%2$s炸死了",
+  "death.attack.explosion.player.item": "%1$s被%2$s用%3$s炸死了",
+  "death.attack.fall.player": "%1$s在试图逃离%2$s时落地过猛",
+  "death.attack.fallingBlock.player": "%1$s在与%2$s战斗时被下落的方块压扁了",
+  "death.attack.fallingStalactite.player": "%1$s在与%2$s战斗时被下落的钟乳石刺穿了",
+  "death.attack.fireworks.player": "%1$s在与%2$s战斗时随着一声巨响消失了",
+  "death.attack.flyIntoWall.player": "%1$s在试图逃离%2$s时感受到了动能",
+  "death.attack.freeze.player": "%1$s被%2$s冻死了",
+  "death.attack.generic.player": "%1$s死于%2$s",
+  "death.attack.genericKill.player": "%1$s在与%2$s战斗时被杀死了",
+  "death.attack.hotFloor.player": "%1$s因%2$s而步入危险之地",
+  "death.attack.inFire.player": "%1$s在与%2$s战斗时不慎走入了火中",
+  "death.attack.inWall.player": "%1$s在与%2$s战斗时在墙里窒息而亡",
+  "death.attack.lava.player": "%1$s在逃离%2$s时试图在熔岩里游泳",
+  "death.attack.lightningBolt.player": "%1$s在与%2$s战斗时被闪电击中",
+  "death.attack.magic.player": "%1$s在试图逃离%2$s时被魔法杀死了",
+  "death.attack.onFire.player": "%1$s在与%2$s战斗时被烤得酥脆",
+  "death.attack.outOfWorld.player": "%1$s与%2$s不共戴天",
+  "death.attack.outsideBorder.player": "%1$s在与%2$s战斗时脱离了这个世界",
+  "death.attack.player": "%1$s被%2$s杀死了",
+  "death.attack.player.item": "%1$s被%2$s用%3$s杀死了",
+  "death.attack.sonic_boom.player": "%1$s在试图逃离%2$s时被一道音波尖啸抹除了",
+  "death.attack.stalagmite.player": "%1$s在与%2$s战斗时被石笋刺穿了",
+  "death.attack.starve.player": "%1$s在与%2$s战斗时饿死了",
+  "death.attack.sting.player": "%1$s被%2$s蛰死了",
+  "death.attack.sweetBerryBush.player": "%1$s在试图逃离%2$s时被甜浆果丛刺死了",
+  "death.attack.wither.player": "%1$s在与%2$s战斗时凋零了",
+}
+
+
+
+
+
