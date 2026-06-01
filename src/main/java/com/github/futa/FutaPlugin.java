@@ -13,7 +13,7 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
         id = "futa-manager",
         version = BuildConstants.VERSION,
         description = "futa craft plugin",
-        url = "https://github.com/futa",
+        url = "https://github.com/futa-team/futa-plugin",
         authors = {"futa"},
         mcVersions = "*" // to indicate any MC version: @Plugin(mcVersions = "*")
         // if you touch packet classes, you almost certainly need to pin to a single mc version
