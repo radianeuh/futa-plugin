@@ -1,604 +1,569 @@
-# Futa Manager - ZenithProxy 插件合集
+# Futa Manager - ZenithProxy Plugin Collection
 
-一个功能强大的 Minecraft ZenithProxy 插件合集，提供自动化物品管理、附魔、交易、战斗辅助等多种实用功能。
+> **[📖 中文文档 (Chinese Documentation)](README_zh.md)**
 
-## 📋 目录
+A powerful Minecraft ZenithProxy plugin collection offering automated pearl management, enchanting, trading, crafting assistance, and more.
 
-- [项目简介](#项目简介)
-- [功能特性](#功能特性)
-- [安装说明](#安装说明)
-- [配置指南](#配置指南)
-- [命令列表](#命令列表)
-- [模块详解](#模块详解)
-- [开发指南](#开发指南)
-- [注意事项](#注意事项)
+## 📋 Table of Contents
 
----
-
-## 🎯 项目简介
-
-**Futa Manager** 是一个基于 ZenithProxy 平台的 Minecraft 客户端插件，专为自动化游戏操作设计。该插件提供了丰富的模块和命令，帮助玩家自动完成物品整理、附魔、村民交易、自动战斗等重复性任务。
-
-### 核心特点
-
-- ✅ **高度自动化**：智能状态机驱动，自动处理复杂流程
-- ✅ **模块化设计**：25+ 独立模块，可按需启用
-- ✅ **灵活配置**：每个模块都有详细的配置文件
-- ✅ **多版本支持**：支持 Minecraft 1.21.4 及更高版本
-- ✅ **事件驱动**：基于 tick 的高效事件处理机制
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Configuration Guide](#configuration-guide)
+- [Commands](#commands)
+- [Module Details](#module-details)
+- [Development Guide](#development-guide)
+- [Important Notes](#important-notes)
 
 ---
 
-## ⚡ 功能特性
+## 🎯 Project Overview
 
-### 📦 物品管理
+**Futa Manager** is a Minecraft client plugin built on the ZenithProxy platform, designed for automating game operations. It provides pearl management, automatic item sorting, enchanting, villager trading, auto-crafting, and other repetitive tasks.
 
-#### 1. **自动箱子管理器 (AutoChestManager)**
-- 自动从多个箱子提取物品
-- 智能分类存储到潜影盒
-- 自动丢弃垃圾物品
-- 支持轮次延迟和超时保护
-- 状态机驱动，稳定可靠
+I originally wrote this in 2024 for personal use on a server. As the features grew and became more refined, I decided to open-source it.
 
-#### 2. **物品分类器 (ItemSorter)**
-- 智能物品分类系统
-- 支持自定义分类规则
-- 自动缓存箱子内容
-- 一键整理多个箱子
-- 支持普通箱子、桶和潜影盒
+There are many hardcoded values in the codebase. Feel free to open an issue if you find any problems.
 
-#### 3. **自动附魔书排序 (EnchantBookSorter)**
-- 自动整理附魔书
-- 按附魔类型分类存储
-- 智能识别附魔等级
-- 优化箱子空间利用
+Most feature modules are disabled by default and won't affect normal behavior — feel free to use them.
 
-### 🔮 附魔系统
+Contributions are welcome! Please submit PRs.
 
-#### 4. **自动附魔模块 (AutoEnchant)**
-- 全自动钻石装备附魔
-- 智能经验收集（刷怪塔/农场）
-- 支持多本附魔书合并
-- 剑类装备特殊处理（最多7本书）
-- 附魔进度跟踪和缓存
-- 自动补充材料和书籍
+### Key Features
 
-### 💰 交易系统
-
-#### 5. **村民交易者 (VillagerTrader)**
-- 自动与村民交易
-- 智能补货系统
-- 绿宝石自动合成
-- 交易冷却管理
-- 支持多个村民
-
-#### 6. **商店模块 (Shop)**
-- 自动化商店操作
-- 批量购买/出售物品
-- 价格监控和提醒
-
-### ⚔️ 战斗辅助
-
-#### 7. **自动水晶放置 (AutoCrystal)**
-- 自动放置末地水晶
-- 智能目标选择
-- 战斗状态检测
-
-#### 8. **珍珠增强 (PearlPlus)**
-- 末影珍珠投掷优化
-- 精准落点计算
-
-#### 9. **死亡记录器 (DeathLogger)**
-- 记录所有玩家死亡信息
-- JSON 格式详细日志
-- 中文翻译支持
-- 包含时间戳、坐标、武器等信息
-- 可选控制台输出和文件保存
-
-### 🌾 农场自动化
-
-#### 10. **下界疣农场 (NetherWartFarm)**
-- 自动种植和收获下界疣
-- 智能生长检测
-- 自动补种
-
-#### 11. **自动凋零放置 (AutoWither)**
-- 在指定位置自动放置凋零
-- 灵魂沙自动补给
-- 轮数计数和管理
-- 最大凋零数量限制
-- 详细的使用文档：[autowither_usage.md](autowither_usage.md)
-
-### 🎒 其他实用功能
-
-#### 12. **自动跟随 (AutoFollow)**
-- 自动跟随指定玩家
-- 智能路径规划
-- 战斗状态检测
-- 重生后自动发送坐标
-- 床点击支持
-
-#### 13. **自动登录 (AutoLogin)**
-- 服务器自动登录
-- 会话重连支持
-
-#### 14. **自动开箱 (AutoVaultOpener)**
-- 批量打开容器
-- 快速提取物品
-
-#### 15. **聊天日志 (ChatLog)**
-- 聊天记录保存
-- 关键词过滤
-
-#### 16. **可视范围记录器 (VisualRangeLogger)**
-- 记录进入视野的玩家
-- 距离提醒
-
-#### 17. **固定视角 (FixedAngleView)**
-- 锁定视角角度
-- 防止视角漂移
-
-#### 18. **末地门传送 (EndGateway)**
-- 自动使用末地门
-- 快速传送
-
-#### 19. **自动掉落 (AutoDrop)**
-- 自动丢弃指定物品
-- 背包空间管理
-
-#### 20. ** wandering (Wander)**
-- 随机移动
-- 防挂机检测
-
-#### 21. **防卡住 (AntiStuck)**
-- 检测卡住状态
-- 自动脱困
-
-#### 22. **自动酿造 (AutoBrewer)**
-- 自动酿造药水
-
-#### 23. **重生处理 (PostRespawn)**
-- 重生后自动执行动作
+- ✅ **Highly Automated**: Intelligent state machine-driven, handles complex workflows automatically
+- ✅ **Modular Design**: 25+ independent modules, enable only what you need
+- ✅ **Flexible Configuration**: Detailed configuration files for each module
+- ✅ **Multi-Version Support**: Supports Minecraft 1.21.4 and above
+- ✅ **Event-Driven**: Efficient event handling mechanism
 
 ---
 
-## 📥 安装说明
+## ⚡ Features
 
-### 前置要求
+### 📦 Item Management
 
-- **ZenithProxy**: Java 版本（不支持 Linux 版本）
-- **Java**: JDK 17 或更高版本
-- **Minecraft**: 1.21.4 或兼容版本
+#### 1. **Auto Chest Manager (AutoChestManager)**
+- Automatically extract items from multiple chests
+- Intelligently sort and store items into shulker boxes
+- Auto-discard junk items
+- Supports round delays and timeout protection
 
-### 安装步骤
+#### 2. **Item Sorter (ItemSorter)**
+- Intelligent item sorting system
+- Supports custom sorting rules
+- Automatic chest content caching
+- One-click sorting for multiple chests
+- Supports regular chests, barrels, and shulker boxes
 
-1. **下载插件**
-   ```bash
-   # 克隆仓库
-   git clone https://github.com/futa/ZenithProxy-futa.git
-   
-   # 或使用预编译的 JAR 文件
-   ```
+#### 3. **Enchantment Book Sorter (EnchantBookSorter)**
+- Auto-organize enchantment books
+- Sort by enchantment type
+- Smart enchantment level recognition
+- Optimize chest space utilization
 
-2. **构建插件**
-   ```bash
-   # 进入项目目录
-   cd ZenithProxy-futa
-   
-   # 使用 Gradle 构建
-   ./gradlew build
-   
-   # Windows 用户
-   gradlew.bat build
-   ```
+### 🔮 Enchanting System
 
-3. **安装插件**
-   - 将生成的 `build/libs/FutaManager-*.jar` 复制到 ZenithProxy 的 `plugins` 文件夹
-   - 重启 ZenithProxy 以加载插件
+#### 4. **Auto Enchant (AutoEnchant)**
+- Fully automatic diamond equipment enchanting
+- Smart XP collection (mob grinders/farms)
+- Supports merging multiple enchantment books
+- Special handling for swords (up to 7 books)
+- Enchantment progress tracking and caching
+- Auto-replenish materials and books
 
-4. **验证安装**
-   - 启动 ZenithProxy
-   - 查看控制台输出，确认插件加载成功
-   - 使用 `/futa` 相关命令测试
+### 💰 Trading System
+
+#### 5. **Villager Trader (VillagerTrader)**
+- Auto-trade with villagers
+- Smart restocking system
+- Auto-craft emeralds
+- Trade cooldown management
+- Supports multiple villagers
+
+#### 6. **Shop Advertisement (Shop)**
+- Automated shop advertisement operations
+
+### ⚔️ Combat Assistance
+
+#### 7. **Auto Crystal (AutoCrystal)**
+- Auto-place End Crystals
+
+#### 8. **Pearl Plus (PearlPlus)**
+- Auto-load and use Ender Pearls
+- Remote control via private message commands (send "pull" request)
+- Smart search nearby signs to find player pearl locations
+- Auto-detect distance and return status info
+- Supports configuring multiple preset pearl points
+- Auto-return to starting position and disconnect after use
+
+#### 9. **Death Logger (DeathLogger)**
+- Record all player death information
+- JSON format detailed logs
+- Includes timestamps, coordinates, weapons, etc.
+- Optional console output and file saving
+
+### 🌾 Farm Automation
+
+#### 10. **Nether Wart Farm (NetherWartFarm)**
+- Auto-plant and harvest nether wart
+- Smart growth detection
+- Auto-replanting
+
+#### 11. **Auto Wither (AutoWither)**
+- Auto-spawn Withers at designated locations
+- Auto-replenish soul sand
+- Round counting and management
+- Maximum wither limit
+- Detailed usage docs: [autowither_usage.md](autowither_usage.md)
+
+### 🎒 Other Utilities
+
+#### 12. **Auto Follow (AutoFollow)**
+- Auto-follow designated players
+- Smart pathfinding
+- Combat state detection
+- Auto-send coordinates after respawn
+- Bed click support
+
+#### 13. **Auto Login (AutoLogin)**
+- Auto server login
+- Session reconnect support
+
+#### 14. **Auto Vault Opener (AutoVaultOpener)**
+- Batch open vaults
+- Quick item extraction
+
+#### 15. **Chat Log (ChatLog)**
+- Chat history saving
+- Keyword filtering
+
+#### 16. **Visual Range Logger (VisualRangeLogger)**
+- Record players entering visual range
+- Distance alerts
+
+#### 17. **Fixed Angle View (FixedAngleView)**
+- Lock viewing angle
+- Prevent angle drift
+- Mainly for enderman farms
+
+#### 18. **End Gateway (EndGateway)**
+- Auto-enter End Gateways
+- Quick teleportation
+
+#### 19. **Auto Drop (AutoDrop)**
+- Auto-drop specified items
+- Inventory space management
+
+#### 21. **Anti Stuck (AntiStuck)**
+- Detect stuck state
+- Auto-escape
+
+#### 22. **Auto Brewer (AutoBrewer)**
+- Auto-brew potions
+
+#### 23. **Post Respawn (PostRespawn)**
+- Auto-execute actions after respawn
 
 ---
 
-## ⚙️ 配置指南
+## 📥 Installation
 
-### 配置文件位置
+### Prerequisites
 
-插件配置文件位于 ZenithProxy 根目录的 `config/futa.json`
+- **ZenithProxy**: Java version (Linux version not supported)
+- **Java**: JDK 25 or higher
+- **Minecraft**: 1.21.4 or compatible version
 
-### 主要配置项
+### Installation Steps
 
+1. **Download the Plugin**
+   - Download the latest `.jar` from [Releases](../../releases)
+
+2. **Install the Plugin**
+   - Copy the `.jar` file to ZenithProxy's `plugins` folder
+   - Restart ZenithProxy to load the plugin
+
+3. **Verify Installation**
+   - Start ZenithProxy
+   - Check console output for successful plugin loading
+   - Test with related commands
+
+---
+
+## ⚙️ Configuration Guide
+
+### Configuration File Location
+
+Plugin configuration file is located at `config/futa.json` in the ZenithProxy root directory.
+
+### Configuration Examples
+
+See each module's documentation:
+- [Auto Wither Usage Guide](autowither_usage.md)
+- [Block Replace Usage Guide](block_replace_usage.md)
+
+---
+
+## 💻 Commands
+
+### Item Management
+```bash
+/autochest <on|off>              # Enable/disable Auto Chest Manager
+/autochest addChest <x> <y> <z>  # Add chest position
+/autochest list                  # List all chests
+
+/itemsorter <on|off>             # Enable/disable Item Sorter
+/itemsorter addChest <x> <y> <z> # Add chest position
+/itemsorter classify             # Manually trigger sorting
+
+/enchantbooksorter <on|off>      # Enable/disable Enchantment Book Sorter
+```
+
+### Enchanting System
+```bash
+/autoenchant <on|off>            # Enable/disable Auto Enchant
+/autoenchant setXpFarm <x> <y> <z>  # Set XP farm position
+/autoenchant status              # View enchanting status
+```
+
+### Trading System
+```bash
+/villagertrader <on|off>         # Enable/disable Villager Trader
+/villagertrader setRestockChest <x> <y> <z>  # Set restock chest
+/villagertrader restock          # Manually restock
+
+/shop <buy|sell> <item> <amount> # Shop operations
+```
+
+### Combat Assistance
+```bash
+/autocrystal <on|off>            # Enable/disable Auto Crystal
+/pp <on|off>                     # Enable/disable Pearl Plus (PM remote control)
+
+/chatlog <on|off>                # Enable/disable Chat Log
+/chatlog search <keyword>        # Search chat history
+```
+
+### Farm Automation
+```bash
+/netherwartfarm <on|off>         # Enable/disable Nether Wart Farm
+
+/autowither <on|off>             # Enable/disable Auto Wither
+/autowither addPosition <x> <y> <z>     # Add spawn position
+/autowither soulSandChest <x> <y> <z>   # Set soul sand chest
+/autowither maxWithers <number>         # Set maximum wither count
+/autowither listPositions        # View all positions
+/autowither resetRound           # Reset round counter
+```
+
+### Other Features
+```bash
+/autofollow <on|off>             # Enable/disable Auto Follow
+/autofollow addTarget <player>   # Add follow target
+/autofollow removeTarget <player># Remove follow target
+
+/autologin <on|off>              # Enable/disable Auto Login
+
+/autovault <on|off>              # Enable/disable Auto Vault Opener
+
+/visualrange <on|off>            # Enable/disable Visual Range Logger
+
+/fixedangle <on|off>             # Enable/disable Fixed Angle View
+/fixedangle set <pitch> <yaw>    # Set viewing angle
+
+/endgateway <on|off>             # Enable/disable End Gateway
+
+/autodrop <on|off>               # Enable/disable Auto Drop
+/autodrop addItem <item>         # Add item to auto-drop list
+
+/wander <on|off>                 # Enable/disable Random Wandering
+
+/antistuck <on|off>              # Enable/disable Anti Stuck
+
+/showentity                      # Show nearby entity info
+
+/pp                              # Pearl
+
+/loginonce                       # One-time login command
+```
+
+---
+
+## 📚 Module Details
+
+### Pearl Plus (PearlPlus)
+
+**Overview:**
+PearlPlus is an intelligent Ender Pearl management system that supports auto-loading and remote control via private messages.
+
+**Core Features:**
+
+1. **Auto Pearl Loading**
+   - Automatically travel to designated locations based on preset IDs
+   - Optionally return to starting position and disconnect after loading
+   - Ideal for scenarios requiring regular pearl usage
+
+2. **Private Message Remote Control**
+   - Other players can send "pull" via PM to request pearl loading assistance
+   - Automatically searches nearby signs (64-block range) for player pearl locations
+   - Smart distance detection (rejects requests beyond 120 blocks)
+   - Auto-reply with status info (en route, too far, pearl not found, etc.)
+
+3. **Smart Location Management**
+   - Auto-identify signs with player names (requires trapdoors)
+   - Save found pearl locations to configuration
+   - Supports multiple player pearl location storage
+
+4. **Status Feedback**
+   - Discord and in-game notifications
+   - Detailed distance calculation and pathfinding
+   - Error handling and friendly prompts
+
+**Configuration:**
 ```json
 {
-  "autoChest": {
-    "enabled": true,
-    "interval": 60,
-    "chestLocations": [],
-    "shulkerLocations": [],
-    "trashLocations": []
-  },
-  "itemSorter": {
-    "enabled": true,
-    "chestLocations": [],
-    "classificationRules": {}
-  },
-  "autoEnchant": {
-    "enabled": true,
-    "equipmentChests": [],
-    "bookChests": [],
-    "resultChests": [],
-    "xpFarmLocation": null,
-    "delayBetweenActions": 10
-  },
-  "autoFollow": {
-    "enabled": false,
-    "targetPlayers": [],
-    "updateInterval": 20,
-    "maxDistance": 100
-  },
-  "trader": {
-    "enabled": false,
-    "restockChest": null,
-    "restockEmeraldCountThreshold": 64,
-    "restockStacks": 8
-  },
-  "die": {
-    "enabled": true,
-    "printToConsole": true,
-    "saveToFile": true,
-    "prettyPrintJson": true
-  },
-  "autoWither": {
-    "enabled": false,
-    "positions": [],
-    "soulSandChest": null,
-    "minSoulSand": 24,
-    "maxWithers": 6,
-    "actionDelay": 1,
-    "checkInterval": 5
-  }
+   "pearlPlus": {
+      "enabled": true,        // Enable module
+      "auto": false,          // Auto-execute (auto-resets to false after trigger)
+      "autoId": "",           // Auto-load pearl ID
+      "server": ""            // Server name
+   }
 }
 ```
 
-### 配置示例
-
-详见各模块的使用文档：
-- [自动凋零使用说明](autowither_usage.md)
-- [方块替换使用说明](block_replace_usage.md)
-
----
-
-## 💻 命令列表
-
-### 通用命令
-
-| 命令 | 描述 | 权限 |
-|------|------|------|
-| `/futa` | 显示插件信息 | 所有玩家 |
-
-### 模块控制命令
-
-#### 物品管理
-```bash
-/autochest <on|off>              # 启用/禁用自动箱子管理
-/autochest addChest <x> <y> <z>  # 添加箱子位置
-/autochest list                  # 列出所有箱子
-
-/itemsorter <on|off>             # 启用/禁用物品分类
-/itemsorter addChest <x> <y> <z> # 添加箱子位置
-/itemsorter classify             # 手动触发分类
-
-/enchantbooksorter <on|off>      # 启用/禁用附魔书排序
-```
-
-#### 附魔系统
-```bash
-/autoenchant <on|off>            # 启用/禁用自动附魔
-/autoenchant setXpFarm <x> <y> <z>  # 设置经验农场位置
-/autoenchant status              # 查看附魔状态
-```
-
-#### 交易系统
-```bash
-/villagertrader <on|off>         # 启用/禁用村民交易
-/villagertrader setRestockChest <x> <y> <z>  # 设置补货箱子
-/villagertrader restock          # 手动补货
-
-/shop <buy|sell> <item> <amount> # 商店操作
-```
-
-#### 战斗辅助
-```bash
-/autocrystal <on|off>            # 启用/禁用自动水晶
-/pearlplus <on|off>              # 启用/禁用珍珠增强
-
-/chatlog <on|off>                # 启用/禁用聊天日志
-/chatlog search <keyword>        # 搜索聊天记录
-```
-
-#### 农场自动化
-```bash
-/netherwartfarm <on|off>         # 启用/禁用下界疣农场
-
-/autowither <on|off>             # 启用/禁用自动凋零
-/autowither addPosition <x> <y> <z>     # 添加放置位置
-/autowither soulSandChest <x> <y> <z>   # 设置灵魂沙箱子
-/autowither maxWithers <number>         # 设置最大凋零数量
-/autowither listPositions        # 查看所有位置
-/autowither resetRound           # 重置轮数计数器
-```
-
-#### 其他功能
-```bash
-/autofollow <on|off>             # 启用/禁用自动跟随
-/autofollow addTarget <player>   # 添加跟随目标
-/autofollow removeTarget <player># 移除跟随目标
-
-/autologin <on|off>              # 启用/禁用自动登录
-
-/autovault <on|off>              # 启用/禁用自动开箱
-
-/visualrange <on|off>            # 启用/禁用可视范围记录
-
-/fixedangle <on|off>             # 启用/禁用固定视角
-/fixedangle set <pitch> <yaw>    # 设置视角角度
-
-/endgateway <on|off>             # 启用/禁用末地门传送
-
-/autodrop <on|off>               # 启用/禁用自动掉落
-/autodrop addItem <item>         # 添加自动掉落物品
-
-/wander <on|off>                 # 启用/禁用随机移动
-
-/antistuck <on|off>              # 启用/禁用防卡住
-
-/showentity                      # 显示附近实体信息
-
-/pp                              # 性能分析命令
-
-/loginonce                       # 一次性登录命令
-```
+**Important Notes:**
+- Ensure interactive blocks (trapdoors, levers, etc.) are near pearl locations
+- Signs need player names for auto-identification
+- Distance limit is 120 blocks (Manhattan distance)
+- Sufficient Ender Pearl inventory required
 
 ---
 
-## 📚 模块详解
+### Architecture
 
-### 架构设计
-
-插件采用模块化架构，每个功能都是一个独立的 Module 或 Command：
+The plugin uses a modular architecture where each feature is an independent Module or Command:
 
 ```
-FutaPlugin (主插件)
-├── Modules (25个模块)
+FutaPlugin (Main Plugin)
+├── Modules (25 modules)
 │   ├── AutoChestManagerModule
 │   ├── ItemSorterModule
 │   ├── AutoEnchantModule
 │   ├── VillagerTrader
-│   └── ... (其他模块)
-└── Commands (22个命令)
+│   ├── PearlPlusModule
+│   └── ... (other modules)
+└── Commands (22 commands)
     ├── AutoChestManagerCommand
     ├── ItemSorterCommand
     ├── AutoEnchantCommand
-    └── ... (其他命令)
+    ├── PPCommand
+    └── ... (other commands)
 ```
 
-### 状态机机制
+### State Machine
 
-大多数模块使用状态机模式实现复杂逻辑：
+Most modules implement complex logic using the state machine pattern:
 
 ```java
 enum ProcessingState {
-    IDLE,
-    OPENING_CHEST,
-    WITHDRAWING_FROM_CHEST,
-    CLOSING_CHEST,
-    // ... 更多状态
+   IDLE,
+   OPENING_CHEST,
+   WITHDRAWING_FROM_CHEST,
+   CLOSING_CHEST,
+   // ... more states
 }
 ```
 
-### 事件驱动
+### Event-Driven
 
-基于 ZenithProxy 的事件系统：
+Based on ZenithProxy's event system:
 
-- `ClientBotTick`: 客户端 tick 事件
-- `SystemChatEvent`: 系统聊天事件
-- `ClientDeathEvent`: 死亡事件
-- `ServerPlayerInVisualRangeEvent`: 玩家进入视野事件
+- `ClientBotTick`: Client tick event
+- `SystemChatEvent`: System chat event
+- `ClientDeathEvent`: Death event
+- `ServerPlayerInVisualRangeEvent`: Player enters visual range event
 
 ---
 
-## 🔧 开发指南
+## 🔧 Development Guide
 
-### 技术栈
+### Tech Stack
 
-- **语言**: Java 17+
-- **构建工具**: Gradle 8.x
-- **框架**: ZenithProxy Plugin API
-- **依赖库**:
-  - Hutool (工具类库)
-  - Gson (JSON 处理)
-  - ProtocolLib (协议处理)
+- **Language**: Java 25+
+- **Build Tool**: Gradle 8.x
+- **Framework**: ZenithProxy Plugin API
+- **Dependencies**:
+   - Hutool (utility library)
+   - Gson (JSON processing)
+   - ProtocolLib (protocol handling)
 
-### 项目结构
+### Project Structure
 
 ```
 ZenithProxy-futa/
 ├── src/main/java/com/github/futa/
-│   ├── FutaPlugin.java          # 主插件类
-│   ├── BaseModule.java          # 基础模块类
-│   ├── module/                  # 模块实现
+│   ├── FutaPlugin.java          # Main plugin class
+│   ├── BaseModule.java          # Base module class
+│   ├── module/                  # Module implementations
 │   │   ├── AutoChestManagerModule.java
 │   │   ├── ItemSorterModule.java
 │   │   └── ...
-│   ├── command/                 # 命令实现
+│   ├── command/                 # Command implementations
 │   │   ├── AutoChestManagerCommand.java
 │   │   ├── ItemSorterCommand.java
 │   │   └── ...
-│   ├── config/                  # 配置类
+│   ├── config/                  # Configuration classes
 │   │   ├── FutaConfig.java
 │   │   ├── AutoChestManagerConfig.java
 │   │   └── ...
-│   ├── dto/                     # 数据传输对象
-│   └── util/                    # 工具类
+│   ├── dto/                     # Data transfer objects
+│   └── util/                    # Utility classes
 ├── src/main/resources/
-│   ├── itemtag/                 # 物品标签
-│   ├── mcdata/                  # Minecraft 数据
-│   └── recipes/                 # 配方数据
-├── doc/                         # 文档
-├── build.gradle.kts             # Gradle 配置
-└── README.md                    # 本文件
+│   ├── itemtag/                 # Item tags
+│   ├── mcdata/                  # Minecraft data
+│   └── recipes/                 # Recipe data
+├── doc/                         # Documentation
+├── build.gradle.kts             # Gradle configuration
+└── README.md                    # This file
 ```
 
-### 创建新模块
+### Creating a New Module
 
-1. **创建模块类**
+1. **Create Module Class**
 ```java
 public class MyModule extends Module {
-    @Override
-    public List<EventConsumer<?>> registerEvents() {
-        return List.of(
-            of(ClientBotTick.class, this::onTick)
-        );
-    }
-    
-    @Override
-    public boolean enabledSetting() {
-        return PLUGIN_CONFIG.myModule.enabled;
-    }
-    
-    private void onTick(ClientBotTick event) {
-        // 模块逻辑
-    }
+   @Override
+   public List<EventConsumer<?>> registerEvents() {
+      return List.of(
+              of(ClientBotTick.class, this::onTick)
+      );
+   }
+
+   @Override
+   public boolean enabledSetting() {
+      return PLUGIN_CONFIG.myModule.enabled;
+   }
+
+   private void onTick(ClientBotTick event) {
+      // Module logic
+   }
 }
 ```
 
-2. **创建配置类**
+2. **Create Configuration Class**
 ```java
 public class MyModuleConfig {
-    public boolean enabled = false;
-    // 其他配置项
+   public boolean enabled = false;
+   // Other config items
 }
 ```
 
-3. **注册模块**
+3. **Register Module**
 ```java
-// 在 FutaPlugin.onLoad() 中
+// In FutaPlugin.onLoad()
 pluginAPI.registerModule(new MyModule());
 ```
 
-### 创建新命令
+### Creating a New Command
 
 ```java
 @CommandInfo(
-    name = "mycommand",
-    description = "我的命令"
+        name = "mycommand",
+        description = "My command"
 )
 public class MyCommand extends Command {
-    @Override
-    public void execute(CommandContext context) {
-        // 命令逻辑
-    }
+   @Override
+   public void execute(CommandContext context) {
+      // Command logic
+   }
 }
 ```
 
-### 构建和测试
+### Build and Test
 
 ```bash
-# 构建插件
+# Build the plugin
 ./gradlew build
 
-# 运行测试
-./gradlew test
-
-# 本地测试（需要配置 ZenithProxy）
+# Local testing (requires ZenithProxy configuration)
 ./gradlew run
 ```
 
 ---
 
-## ⚠️ 注意事项
+## ⚠️ Important Notes
 
-### 使用建议
+### Usage Recommendations
 
-1. **备份配置**: 使用前备份重要数据和配置文件
-2. **逐步启用**: 先启用单个模块测试，确认无误后再启用其他模块
-3. **监控日志**: 定期检查控制台日志和错误信息
-4. **合理配置**: 根据服务器规则调整模块参数，避免被检测为作弊
+1. **Backup Config**: Backup important data and configuration files before use
+2. **Enable Gradually**: Test single modules first, then enable others
+3. **Monitor Logs**: Regularly check console logs and error messages
+4. **Reasonable Configuration**: Adjust module parameters according to server rules to avoid detection
 
-### 性能优化
+### Performance Optimization
 
-- 调整 `updateInterval` 减少 tick 频率
-- 合理设置延迟时间（`delayBetweenActions`）
-- 避免同时启用过多模块
-- 定期清理日志文件
+- Adjust `updateInterval` to reduce tick frequency
+- Set appropriate delays (`delayBetweenActions`)
+- Avoid enabling too many modules simultaneously
+- Clean log files periodically
 
-### 兼容性
+### Compatibility
 
-- 仅支持 ZenithProxy Java 版本
-- 需要 Minecraft 1.21.4 或兼容版本
-- 某些模块可能需要特定的服务器环境
+- Only supports ZenithProxy Java version
+- Requires Minecraft 1.21.4 or compatible version
+- Some modules may require specific server environments
 
-### 安全提示
+### Security Notice
 
-⚠️ **重要声明**: 
-- 本插件仅供学习和研究使用
-- 在多人服务器上使用自动化脚本可能违反服务器规则
-- 请遵守各服务器的使用条款
-- 开发者不对因使用本插件导致的任何后果负责
-
----
-
-## 📖 相关文档
-
-- [自动凋零使用说明](autowither_usage.md)
-- [方块替换使用说明](block_replace_usage.md)
-- [物品分类完整指南](doc/ItemClassification_Complete.md)
-- [物品排序器默认分类](doc/ItemSorter_DefaultClassification_README.md)
-- [物品排序器一箱一物](doc/ItemSorter_OneItemOneChest_README.md)
-- [死亡记录器说明](doc/README-DeathLogger.md)
+⚠️ **Important Disclaimer**:
+- This plugin is for learning and research purposes only
+- Using automation scripts on multiplayer servers may violate server rules
+- Please comply with each server's terms of use
+- Developers are not responsible for any consequences arising from the use of this plugin
 
 ---
 
-## 🤝 贡献指南
+## 📖 Documentation
 
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
----
-
-## 📄 许可证
-
-本项目遵循 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+- [Auto Wither Usage Guide](autowither_usage.md)
+- [Block Replace Usage Guide](block_replace_usage.md)
+- [Item Classification Complete Guide](doc/ItemClassification_Complete.md)
+- [Item Sorter Default Classification](doc/ItemSorter_DefaultClassification_README.md)
+- [Item Sorter One Item One Chest](doc/ItemSorter_OneItemOneChest_README.md)
+- [Death Logger Documentation](doc/README-DeathLogger.md)
 
 ---
 
-## 👥 作者
+## 🤝 Contributing
 
-- **futa** - 初始开发和维护
+Issues and Pull Requests are welcome!
 
----
-
-## 🙏 致谢
-
-- [ZenithProxy](https://github.com/rfresh2/ZenithProxy) - 强大的 Minecraft 代理平台
-- [Hutool](https://hutool.cn/) - Java 工具类库
-- 所有贡献者和使用者
+1. Fork this repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-## 📞 联系方式
+## 📄 License
 
-- GitHub: [futa](https://github.com/futa)
-- 问题反馈: [Issues](https://github.com/futa/ZenithProxy-futa/issues)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ---
 
-**⭐ 如果这个项目对你有帮助，请给个 Star！**
+## 👥 Authors
+
+- **futa** - Initial development and maintenance
+
+---
+
+## 🙏 Acknowledgments
+
+- [ZenithProxy](https://github.com/rfresh2/ZenithProxy) - Powerful Minecraft proxy platform
+- All contributors and users
+
+---
+
+**⭐ If this project helps you, please give it a Star!**
