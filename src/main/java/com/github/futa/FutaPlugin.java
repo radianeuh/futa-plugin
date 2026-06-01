@@ -15,12 +15,11 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
         description = "futa craft plugin",
         url = "https://github.com/futa-team/futa-plugin",
         authors = {"futa"},
-        mcVersions = "*" // to indicate any MC version: @Plugin(mcVersions = "*")
+        mcVersions = "*"
+        // to indicate any MC version: @Plugin(mcVersions = "*")
         // if you touch packet classes, you almost certainly need to pin to a single mc version
 )
 public class FutaPlugin implements ZenithProxyPlugin {
-    // public static for simple access from modules and commands
-    // or alternatively, you could pass these around in constructors
     public static FutaConfig PLUGIN_CONFIG;
     public static ComponentLogger log;
 

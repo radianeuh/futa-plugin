@@ -1,6 +1,7 @@
 package com.github.futa.module;
 
 import com.github.rfresh2.EventConsumer;
+import com.zenith.Globals;
 import com.zenith.Proxy;
 import com.zenith.event.chat.SystemChatEvent;
 import com.zenith.event.client.ClientConnectEvent;
@@ -74,6 +75,9 @@ public class AutoLoginModule extends Module {
     }
 
     private void handleConnectEvent(ClientConnectEvent clientConnectEvent) {
+        if (!Globals.CONFIG.client.server.address.toLowerCase().contains("3c3u.org")) {
+            return;
+        }
         info("客户端连接成功，清理重启任务");
         clearRebootTasks();
 //        PLUGIN_CONFIG.autoReboot = true;
@@ -82,6 +86,9 @@ public class AutoLoginModule extends Module {
     }
 
     private void handleDisconnectEvent(ClientDisconnectEvent event) {
+        if (!Globals.CONFIG.client.server.address.toLowerCase().contains("3c3u.org")) {
+            return;
+        }
         String reason = event.reason();
         info("客户端断开连接:" + reason);
         updateOnlineStatus(false);
@@ -105,6 +112,9 @@ public class AutoLoginModule extends Module {
 
     private void handleLogin(SystemChatEvent event) {
         if (!PLUGIN_CONFIG.autoLogin) {
+            return;
+        }
+        if (!Globals.CONFIG.client.server.address.toLowerCase().contains("3c3u.org")) {
             return;
         }
 
