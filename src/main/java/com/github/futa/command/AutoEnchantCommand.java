@@ -71,6 +71,7 @@ public class AutoEnchantCommand extends Command {
                         "maxEnchants <equipment> <max>",
                         "enableEquipment <equipment>",
                         "disableEquipment <equipment>",
+                        "pauseKillAura <true/false>",
                         "debug <true/false>"
                 )
                 .build();
@@ -270,6 +271,15 @@ public class AutoEnchantCommand extends Command {
                     c.getSource().getEmbed()
                             .title("Debug Mode " + (enchantConfig.debugMode ? "Enabled" : "Disabled"));
                     return OK;
+                })))
+                .then(literal("pauseKillAura").then(argument("toggle", toggle()).executes(c -> {
+                    enchantConfig.pauseKillAura = getToggle(c, "toggle");
+                    c.getSource().getEmbed()
+                            .title("Pause KillAura " + (enchantConfig.pauseKillAura ? "Enabled" : "Disabled"))
+                            .description(enchantConfig.pauseKillAura
+                                    ? "KillAura 将在附魔操作期间自动暂停"
+                                    : "KillAura 将保持启用状态");
+                    return OK;
                 })));
     }
 
@@ -294,6 +304,7 @@ public class AutoEnchantCommand extends Command {
                 .addField("Result Chests", enchantConfig.resultChests.size() + " configured")
                 .addField("XP Farm", "||" + (CONFIG.discord.reportCoords ? enchantConfig.xpFarmPos : "Coords disabled") + "||")
                 .addField("Anvil Search Radius", String.valueOf(enchantConfig.anvilSearchRadius))
+                .addField("Pause KillAura", toggleStr(enchantConfig.pauseKillAura))
                 .addField("Debug Mode", toggleStr(enchantConfig.debugMode))
                 .addField("Equipment Strategies", formatStrategies())
                 .primaryColor();

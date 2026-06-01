@@ -55,6 +55,7 @@ public class FutaPlugin implements ZenithProxyPlugin {
         pluginAPI.registerModule(new NetherWartFarmModule());
         pluginAPI.registerModule(new AutoWitherModule());
         pluginAPI.registerModule(new AutoTurtleFeedModule());
+        pluginAPI.registerModule(new AutoOmenPlusModule());
 
         pluginAPI.registerCommand(new ShowEntityCommand());
         pluginAPI.registerCommand(new AutoFollowCommand());
@@ -79,6 +80,7 @@ public class FutaPlugin implements ZenithProxyPlugin {
         pluginAPI.registerCommand(new NetherWartFarmCommand());
         pluginAPI.registerCommand(new AutoWitherCommand());
         pluginAPI.registerCommand(new AutoTurtleFeedCommand());
+        pluginAPI.registerCommand(new AutoOmenPlusCommand());
         pluginAPI.registerCommand(new LoginOnceCommand());
 
         log.info("futa plugin loaded.");

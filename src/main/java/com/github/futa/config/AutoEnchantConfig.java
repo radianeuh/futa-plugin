@@ -17,6 +17,7 @@ public class AutoEnchantConfig {
     public int anvilSearchRadius = 26;
     public long delayBetweenActions = 5L;
     public int actionDelayTick = 1;
+    public boolean pauseKillAura = true;
 
     public Map<String, EnchantStrategy> enchant = new LinkedHashMap<>();
 

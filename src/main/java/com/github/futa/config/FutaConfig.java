@@ -58,4 +58,5 @@ public class FutaConfig {
     public AutoWitherConfig autoWither = new AutoWitherConfig();
     public AutoTurtleFeedConfig autoTurtleFeed = new AutoTurtleFeedConfig();
     public AuthBypasserConfig cccuuuAuthBypasser = new AuthBypasserConfig();
+    public AutoOmenPlusConfig autoOmenPlus = new AutoOmenPlusConfig();
 }
