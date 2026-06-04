@@ -61,4 +61,6 @@ public class FutaConfig {
     public AutoOmenPlusConfig autoOmenPlus = new AutoOmenPlusConfig();
     public ElytraFlyConfig elytraFly = new ElytraFlyConfig();
     public ElytraUnbreakConfig elytraUnbreak = new ElytraUnbreakConfig();
+    public BaseFinderConfig baseFinder = new BaseFinderConfig();
+    public SearchAreaConfig searchArea = new SearchAreaConfig();
 }
