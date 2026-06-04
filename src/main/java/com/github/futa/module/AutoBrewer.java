@@ -33,7 +33,9 @@
 //                .perform((from, to, event, ctx) -> ctx.addIngredients());
 //
 //        builder.externalTransition()
-//                .from(States.ADD_INGREDIENTS).to(States.BREWING).on(Events.INGREDIENTS_ADDED)
+//                .from(States.ADD_INGREDIENTS)
+//                .to(States.BREWING)
+//                .on(Events.INGREDIENTS_ADDED)
 //                .perform((from, to, event, ctx) -> ctx.startBrewing());
 //
 //        builder.externalTransition()

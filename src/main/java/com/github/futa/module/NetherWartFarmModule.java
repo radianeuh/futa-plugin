@@ -296,7 +296,7 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
             }
         } else if (isNetherWartMature(aboveBlockState)) {
 
-            if (switchToHoe() || interactTimer.tick(30)) {
+            if (switchToHoe() || interactTimer.tick(5)) {
                 // 检查地狱疣是否成熟
                 if (PLUGIN_CONFIG.netherWartFarm.debugMode) {
                     info("Harvesting mature nether wart at ({}, {}, {})", abovePos.x(), abovePos.y(), abovePos.z());
@@ -334,7 +334,7 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
                 // 操作完成，继续搜索下一个目标
                 setState(State.SEARCH_SOUL_SAND);
             }
-        } else if (interactTimer.tick(600)) {
+        } else if (interactTimer.tick(60)) {
             info("Interact with block timeout, retry");
 
             setState(State.INTERACT_WITH_BLOCK);
@@ -566,8 +566,29 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
         if (isItemOnHand(ItemRegistry.DIAMOND_HOE.id())) {
             return true;
         }
+
+        // 检查背包中是否有锄头
+        if (!hasHoeInInventory()) {
+            if (PLUGIN_CONFIG.netherWartFarm.debugMode) {
+                info("No hoe found in inventory, proceeding without it");
+            }
+            return true;
+        }
+
+        // 有锄头但不在手上，执行切换
         if (inventoryActionFuture.isCompleted()) {
             switchToItem(ItemRegistry.DIAMOND_HOE.id(), 1);
+        }
+        return false;
+    }
+
+    private boolean hasHoeInInventory() {
+        var inv = CACHE.getPlayerCache().getPlayerInventory();
+        for (int i = 9; i <= 44; i++) {
+            var item = inv.get(i);
+            if (item != null && item != Container.EMPTY_STACK && isHoe(item.getId())) {
+                return true;
+            }
         }
         return false;
     }

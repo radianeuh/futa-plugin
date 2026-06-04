@@ -1,5 +1,6 @@
 package com.github.futa.module;
 
+import com.github.futa.util.InvUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.cache.data.inventory.Container;
 import com.zenith.event.client.ClientBotTick;
@@ -357,15 +358,8 @@ public class AutoWitherModule extends AbstractInventoryModule {
     }
 
     private boolean hasSoulSand() {
-        var inv = CACHE.getPlayerCache().getPlayerInventory();
-        for (int i = 0; i < inv.size(); i++) {
-            var item = inv.get(i);
-            if (item != null && item != Container.EMPTY_STACK
-                    && item.getId() == ItemRegistry.SOUL_SAND.id()) {
-                return true;
-            }
-        }
-        return false;
+
+        return InvUtil.hasItem(ItemRegistry.SOUL_SAND);
     }
 
     private boolean switchToSoulSand() {

@@ -14,9 +14,8 @@ import com.zenith.feature.player.Input;
 import com.zenith.feature.player.InputRequest;
 import com.zenith.mc.item.ItemData;
 import com.zenith.mc.item.ItemRegistry;
-import com.zenith.module.impl.KillAura;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.Effect;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Hand;
 import org.geysermc.mcprotocollib.protocol.data.game.inventory.MoveToHotbarAction;
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 
@@ -34,7 +33,7 @@ import static com.zenith.Globals.*;
  * - KillAura 自动联动
  */
 public class AutoOmenPlusModule extends BaseModule {
-    public static final int PRIORITY = 600;
+    public static final int PRIORITY = 2600;
     public static AutoOmenPlusConfig config = PLUGIN_CONFIG.autoOmenPlus;
 
     private int delay = 0;
@@ -60,8 +59,6 @@ public class AutoOmenPlusModule extends BaseModule {
         drinkStartTime = System.currentTimeMillis();
         if (!needDrink()) {
             stopDrinking();
-            enableKillAura();
-            setDelay(600);
         }
         drinking = false;
     }
@@ -78,36 +75,37 @@ public class AutoOmenPlusModule extends BaseModule {
     private void onTick(ClientBotTick event) {
         // 前置检查
         if (!CACHE.getPlayerCache().getThePlayer().isAlive()) return;
-        if (CACHE.getPlayerCache().getGameMode() == GameMode.CREATIVE) return;
-        if (CACHE.getPlayerCache().getGameMode() == GameMode.SPECTATOR) return;
 
         // 阶段一：延迟未结束
         if (delay > 0) {
             delay--;
-            if (delay % 20 == 0) {
+            if (config.debug && delay % 20 == 0) {
                 info("喝药计时: " + (delay / 20) + "s");
+            }
+
+            if (drinking) {
+                INPUTS.submit(InputRequest.noInput(this, PRIORITY));
+                INVENTORY.submit(InventoryActionRequest.noAction(this, PRIORITY));
             }
             return;
         }
+        drinking = false;
 
-        // 阶段二：延迟结束
-        if (drinking) {
-            handleDrinkingTick();
-        } else {
-            handleIdleTick();
-        }
+        handleIdleTick();
     }
 
     // ==================== 子情况处理 ====================
 
     private void handleDrinkingTick() {
-        if (needDrink()) {
+        if (needDrink() && !isDrinkTimedOut()) {
             drink();
         } else {
-            info("喝药结束");
+            if (isDrinkTimedOut()) {
+                warn("喝药超时（" + config.drinkTimeout + "s），强制停止");
+            } else {
+                info("喝药结束");
+            }
             stopDrinking();
-            enableKillAura();
-            setDelay(600);
             drinkStartTime = System.currentTimeMillis();
         }
     }
@@ -116,13 +114,10 @@ public class AutoOmenPlusModule extends BaseModule {
         if (!needDrink()) {
             return;
         }
-        disableKillAura();
         slot = findSlot();
         if (slot >= 0) {
-            info("开始喝药");
+            info("开始喝药 slot:" + slot);
             drink();
-        } else {
-            error("缺少<不详之瓶>");
         }
     }
 
@@ -136,9 +131,9 @@ public class AutoOmenPlusModule extends BaseModule {
      * 3. 且距离上次 drink() 已超过 5 秒
      */
     private boolean needDrink() {
-        if (hasEffect(Effect.BAD_OMEN)) {
-            return false;
-        }
+//        if (hasEffect(Effect.BAD_OMEN)) {
+//            return false;
+//        }
         if (hasRaidOmen()) {
             return false;
         }
@@ -158,7 +153,17 @@ public class AutoOmenPlusModule extends BaseModule {
         return CACHE.getPlayerCache().getThePlayer().getPotionEffectMap().containsKey(effect);
     }
 
+    /**
+     * 检查喝药是否超时
+     * 从开始喝药算起，超过 drinkTimeout 秒则认为超时
+     */
+    private boolean isDrinkTimedOut() {
+        return config.drinkTimeout > 0
+                && System.currentTimeMillis() - drinkStartTime > config.drinkTimeout * 1000L;
+    }
+
     // ==================== 喝药动作 ====================
+
 
     private void drink() {
         if (slot < 0) return;
@@ -166,17 +171,25 @@ public class AutoOmenPlusModule extends BaseModule {
         INVENTORY.submit(InventoryActionRequest.builder()
                 .owner(this)
                 .actions(List.of(new SetHeldItem(slot)))
+                .actionDelayTicks(0)
                 .priority(PRIORITY)
                 .build());
         // 按住右键
         INPUTS.submit(InputRequest.builder()
-                .owner(this)
-                .input(Input.builder()
-                        .rightClick(true)
-                        .clickTarget(ClickTarget.None.INSTANCE)
+                        .owner(this)
+                        .input(Input.builder()
+                                .rightClick(true)
+                                .hand(Hand.MAIN_HAND)
+                                .clickTarget(ClickTarget.None.INSTANCE)
+                                .clickRequiresRotation(false)
+                                .build())
+                        .priority(PRIORITY)
                         .build())
-                .priority(PRIORITY)
-                .build());
+                .addInputExecutedListener(future -> {
+                    debug("Drinking Omen");
+                    delay = 50;
+                    drinking = true;
+                });
         drinking = true;
         drinkStartTime = System.currentTimeMillis();
     }
@@ -227,6 +240,7 @@ public class AutoOmenPlusModule extends BaseModule {
                                     MoveToHotbarAction.from(target - 36)
                             )
                     ))
+                    .actionDelayTicks(0)
                     .priority(PRIORITY)
                     .build());
             return target;
@@ -247,48 +261,26 @@ public class AutoOmenPlusModule extends BaseModule {
 
     private boolean isOminousBottle(ItemStack itemStack) {
         ItemData itemData = ItemRegistry.REGISTRY.get(itemStack.getId());
+
         return itemData != null && itemData == ItemRegistry.OMINOUS_BOTTLE;
     }
 
     // ==================== KillAura 联动 ====================
 
-    private void enableKillAura() {
-        if (!CONFIG.client.extra.killAura.enabled) {
-            CONFIG.client.extra.killAura.enabled = true;
-            MODULE.get(KillAura.class).syncEnabledFromConfig();
-            info("KillAura 已启用");
-        }
-    }
+//    private void enableKillAura() {
+//        if (!CONFIG.client.extra.killAura.enabled) {
+//            CONFIG.client.extra.killAura.enabled = true;
+//            MODULE.get(KillAura.class).syncEnabledFromConfig();
+//            info("KillAura 已启用");
+//        }
+//    }
+//
+//    private void disableKillAura() {
+//        if (CONFIG.client.extra.killAura.enabled) {
+//            CONFIG.client.extra.killAura.enabled = false;
+//            MODULE.get(KillAura.class).syncEnabledFromConfig();
+//            info("KillAura 已禁用");
+//        }
+//    }
 
-    private void disableKillAura() {
-        if (CONFIG.client.extra.killAura.enabled) {
-            CONFIG.client.extra.killAura.enabled = false;
-            MODULE.get(KillAura.class).syncEnabledFromConfig();
-            info("KillAura 已禁用");
-        }
-    }
-
-    // ==================== 工具方法 ====================
-
-    private void setDelay(int ticks) {
-        this.delay = ticks;
-    }
-
-    // ==================== 获取当前状态 ====================
-
-    public boolean isDrinking() {
-        return drinking;
-    }
-
-    public long getDrinkStartTime() {
-        return drinkStartTime;
-    }
-
-    public int getSlot() {
-        return slot;
-    }
-
-    public int getDelay() {
-        return delay;
-    }
 }

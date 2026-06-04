@@ -9,6 +9,12 @@ import com.zenith.plugin.api.PluginAPI;
 import com.zenith.plugin.api.ZenithProxyPlugin;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
+/**
+ * FOR AI developers
+ * 常见功能写法、最佳实现等, 可以参考 BestPracticeExample
+ *
+ * @see BestPracticeExample
+ */
 @Plugin(
         id = "futa-manager",
         version = BuildConstants.VERSION,
@@ -56,6 +62,8 @@ public class FutaPlugin implements ZenithProxyPlugin {
         pluginAPI.registerModule(new AutoWitherModule());
         pluginAPI.registerModule(new AutoTurtleFeedModule());
         pluginAPI.registerModule(new AutoOmenPlusModule());
+        pluginAPI.registerModule(new ElytraFlyModule());
+        pluginAPI.registerModule(new ElytraUnbreakModule());
 
         pluginAPI.registerCommand(new ShowEntityCommand());
         pluginAPI.registerCommand(new AutoFollowCommand());
@@ -81,6 +89,8 @@ public class FutaPlugin implements ZenithProxyPlugin {
         pluginAPI.registerCommand(new AutoWitherCommand());
         pluginAPI.registerCommand(new AutoTurtleFeedCommand());
         pluginAPI.registerCommand(new AutoOmenPlusCommand());
+        pluginAPI.registerCommand(new ElytraFlyCommand());
+        pluginAPI.registerCommand(new ElytraUnbreakCommand());
         pluginAPI.registerCommand(new LoginOnceCommand());
 
         log.info("futa plugin loaded.");

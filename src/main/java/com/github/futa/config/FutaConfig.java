@@ -1,7 +1,7 @@
 package com.github.futa.config;
 
 /**
- * Example configuration POJO.
+ * configuration POJO.
  * <p>
  * Configurations are saved and loaded to JSON files
  * <p>
@@ -59,4 +59,6 @@ public class FutaConfig {
     public AutoTurtleFeedConfig autoTurtleFeed = new AutoTurtleFeedConfig();
     public AuthBypasserConfig cccuuuAuthBypasser = new AuthBypasserConfig();
     public AutoOmenPlusConfig autoOmenPlus = new AutoOmenPlusConfig();
+    public ElytraFlyConfig elytraFly = new ElytraFlyConfig();
+    public ElytraUnbreakConfig elytraUnbreak = new ElytraUnbreakConfig();
 }
