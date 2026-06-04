@@ -4,6 +4,7 @@ import com.github.futa.FutaPlugin;
 import com.github.futa.config.ElytraFlyConfig;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.Globals;
+import com.zenith.Proxy;
 import com.zenith.cache.data.entity.EntityPlayer;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.player.Bot;
@@ -109,11 +110,10 @@ public class ElytraFlyModule extends Module {
         if (config.debug) {
             if (!Globals.BOT.isOnGround() && !Globals.BOT.isFallFlying() && !Globals.BOT.isTouchingWater()) {
                 info("BOT 在空中停止滑翔状态了" + tick);
-
             }
         }
         tick++;
-        if (config.debug && tick % 40 == 0) {
+        if (config.debug && tick % (config.debugLogPeriod * 20) == 0) {
             info("===========================");
             info("BOT loction: " + keep2Decimal(player.getX()) + " " + keep2Decimal(player.getY()) + " " + keep2Decimal(player.getZ()));
             info("BOT Pitch: " + player.getPitch() + " Yaw: " + player.getYaw());
@@ -135,7 +135,6 @@ public class ElytraFlyModule extends Module {
             info("===========================");
         }
 
-
 //        // 检查是否穿着鞘翅
 //        if (!isWearingElytra()) return;
 //
@@ -147,6 +146,17 @@ public class ElytraFlyModule extends Module {
 
         // ========== TickEvent.Post 逻辑：pitch 控制 ==========
         handlePitchControl(player);
+
+        // ========== 检查是否到达目标坐标 ==========
+        if (config.disconnectOnReach) {
+            checkAndDisconnect(player);
+        }
+
+        // ========== 检查是否低于指定Y坐标 ==========
+        if (config.disconnectOnLowY > 0 && player.getY() < config.disconnectOnLowY) {
+            info("玩家 Y=" + String.format("%.1f", player.getY()) + " 低于 " + config.disconnectOnLowY + "，自动下线");
+            Proxy.getInstance().disconnect();
+        }
 
         lastY = player.getY();
     }
@@ -220,6 +230,21 @@ public class ElytraFlyModule extends Module {
         if (chestStack == null) return false;
         // 检查物品名称是否为 elytra
         return chestStack.getId() == ELYTRA.id();
+    }
+
+    /**
+     * 检查是否到达目标坐标附近，如果到达则断开连接
+     */
+    private void checkAndDisconnect(EntityPlayer player) {
+        double dx = player.getX() - config.targetX;
+        double dz = player.getZ() - config.targetZ;
+        double distance = Math.sqrt(dx * dx + dz * dz);
+
+        if (distance <= config.disconnectDistance) {
+            info("已到达目标坐标 (" + config.targetX + ", " + config.targetZ + ") 附近，距离: " + String.format("%.1f", distance) + " 格");
+            info("正在断开连接...");
+            Proxy.getInstance().disconnect();
+        }
     }
 
 
