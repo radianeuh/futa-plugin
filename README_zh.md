@@ -167,6 +167,14 @@
 #### 23. **重生处理 (PostRespawn)**
 - 重生后自动执行动作
 
+#### 24. **鞘翅飞行 (ElytraFly)**
+- 自动鞘翅飞行控制
+- Pitch 振荡飞行（无需烟花）
+- 智能边界重置
+- 目标坐标导航与自动下线
+- 低 Y 轴自动下线安全功能
+- 速度：30-40 格/秒，不消耗鞘翅耐久
+
 ---
 
 ## 📥 安装说明
@@ -292,6 +300,18 @@
 /pp                              # 珍珠
 
 /loginonce                       # 一次性登录命令
+
+/elytrafly <on|off>              # 启用/禁用鞘翅飞行
+/elytrafly upper <height>        # 设置上边界高度
+/elytrafly lower <height>        # 设置下边界高度
+/elytrafly speed <degrees>       # 设置 pitch 旋转速度
+/elytrafly gap <blocks>          # 设置边界间距
+/elytrafly goto <x> <z>          # 导航到目标坐标
+/elytrafly disconnect on|off     # 到达目标自动下线
+/elytrafly disconnectDistance <blocks>  # 设置下线判定距离
+/elytrafly lowY <height>         # 低于 Y 坐标自动下线
+/elytrafly debug on|off          # 启用调试日志
+/elytrafly debugPeriod <seconds> # 设置调试日志间隔
 ```
 
 ---
@@ -345,6 +365,68 @@ PearlPlus 是一个智能化的末影珍珠管理系统，支持自动加载珍�
 - 牌子上需要包含玩家名字以便自动识别
 - 距离限制为 120 格（曼哈顿距离）
 - 使用时需要足够的末影珍珠库存
+
+---
+
+### 鞘翅飞行 (ElytraFly)
+
+**功能概述：**
+ElytraFly 是一个自动鞘翅飞行控制模块，实现 pitch 振荡飞行，无需烟花且不消耗鞘翅耐久。机器人自动在 -40°（抬头）和 +40°（低头）之间调整 pitch，在设定的高度范围内持续飞行。
+
+**核心功能：**
+
+1. **自动 Pitch 控制**
+   - 在 -40° 和 +40° 之间振荡实现持续飞行
+   - 可配置旋转速度（度/tick）
+   - 根据玩家位置自动重置边界
+
+2. **高度管理**
+   - 上下边界定义飞行高度范围
+   - 玩家低于阈值时自动重置边界
+   - 智能检测最高点进行边界调整
+
+3. **目标导航**
+   - 设置目标 X/Z 坐标进行导航
+   - 自动计算 yaw 朝向目标
+   - 可配置下线判定距离
+
+4. **安全功能**
+   - 低 Y 轴自动下线（可配置阈值）
+   - 未加载区块检测防止卡住
+   - 可配置间隔的调试日志
+
+**配置项：**
+```json
+{
+   "elytraFly": {
+      "enabled": false,
+      "pitch40LowerBounds": 80,
+      "pitch40UpperBounds": 120,
+      "pitch40RotationSpeed": 4,
+      "boundGap": 60,
+      "targetX": 0,
+      "targetZ": 0,
+      "disconnectOnReach": false,
+      "disconnectDistance": 5,
+      "disconnectOnLowY": 0,
+      "debug": false,
+      "debugLogPeriod": 2
+   }
+}
+```
+
+**使用方法：**
+1. 穿戴鞘翅并手动起飞
+2. 启用模块：`.elytrafly on`
+3. （可选）设置目标：`.elytrafly goto 1000 2000`
+4. （可选）启用自动下线：`.elytrafly disconnect on`
+5. 模块将自动控制 pitch 并导航
+
+**性能：**
+- 速度：30-40 格/秒
+- 无需烟花
+- 不消耗鞘翅耐久
+- 建议同时启用 ElytraUnbreak 模块
 
 ---
 

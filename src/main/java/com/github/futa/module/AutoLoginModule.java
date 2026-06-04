@@ -401,6 +401,9 @@ public class AutoLoginModule extends Module {
      * @return true 表示在区域内，否则 false
      */
     public static boolean isIn3cSpawn() {
+        if (!Globals.CONFIG.client.server.address.toLowerCase().contains("3c3u.org")) {
+            return false;
+        }
         return isIn3cSpawn(CACHE.getPlayerCache().getX(), CACHE.getPlayerCache().getZ());
     }
 

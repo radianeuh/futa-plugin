@@ -165,6 +165,14 @@ Contributions are welcome! Please submit PRs.
 #### 23. **Post Respawn (PostRespawn)**
 - Auto-execute actions after respawn
 
+#### 24. **Elytra Fly (ElytraFly)**
+- Automatic elytra flight control
+- Pitch oscillation flight between upper and lower bounds (no fireworks needed)
+- Smart boundary reset based on player position
+- Target coordinate navigation with auto-disconnect
+- Low Y-axis auto-disconnect safety feature
+- Speed: 30-40 blocks/second without elytra durability loss
+
 ---
 
 ## 📥 Installation
@@ -286,6 +294,18 @@ See each module's documentation:
 /pp                              # Pearl
 
 /loginonce                       # One-time login command
+
+/elytrafly <on|off>              # Enable/disable Elytra Fly
+/elytrafly upper <height>        # Set upper flight bound
+/elytrafly lower <height>        # Set lower flight bound
+/elytrafly speed <degrees>       # Set pitch rotation speed
+/elytrafly gap <blocks>          # Set boundary gap
+/elytrafly goto <x> <z>          # Navigate to target coordinates
+/elytrafly disconnect on|off     # Auto-disconnect at target
+/elytrafly disconnectDistance <blocks>  # Set disconnect distance
+/elytrafly lowY <height>         # Auto-disconnect below Y level
+/elytrafly debug on|off          # Enable debug logging
+/elytrafly debugPeriod <seconds> # Set debug log interval
 ```
 
 ---
@@ -337,6 +357,68 @@ PearlPlus is an intelligent Ender Pearl management system that supports auto-loa
 - Signs need player names for auto-identification
 - Distance limit is 120 blocks (Manhattan distance)
 - Sufficient Ender Pearl inventory required
+
+---
+
+### Elytra Fly (ElytraFly)
+
+**Overview:**
+ElytraFly is an automatic elytra flight control module that enables pitch oscillation flight without fireworks or elytra durability loss. The bot automatically adjusts pitch between -40° (climb) and +40° (dive) to maintain flight within configured height bounds.
+
+**Core Features:**
+
+1. **Automatic Pitch Control**
+   - Oscillates pitch between -40° and +40° for sustained flight
+   - Configurable rotation speed (degrees per tick)
+   - Automatic boundary reset based on player position
+
+2. **Height Management**
+   - Upper and lower bounds define flight altitude range
+   - Auto-reset boundaries when player drops below threshold
+   - Smart detection of highest point for boundary adjustment
+
+3. **Target Navigation**
+   - Set target X/Z coordinates to fly towards
+   - Automatic yaw calculation to face target
+   - Configurable disconnect distance for arrival detection
+
+4. **Safety Features**
+   - Low Y-axis auto-disconnect (configurable threshold)
+   - Unloaded chunk detection to prevent crashes
+   - Debug logging with configurable interval
+
+**Configuration:**
+```json
+{
+   "elytraFly": {
+      "enabled": false,
+      "pitch40LowerBounds": 80,
+      "pitch40UpperBounds": 120,
+      "pitch40RotationSpeed": 4,
+      "boundGap": 60,
+      "targetX": 0,
+      "targetZ": 0,
+      "disconnectOnReach": false,
+      "disconnectDistance": 5,
+      "disconnectOnLowY": 0,
+      "debug": false,
+      "debugLogPeriod": 2
+   }
+}
+```
+
+**Usage:**
+1. Wear elytra and manually take off
+2. Enable the module: `.elytrafly on`
+3. (Optional) Set target: `.elytrafly goto 1000 2000`
+4. (Optional) Enable auto-disconnect: `.elytrafly disconnect on`
+5. Module will automatically control pitch and navigate
+
+**Performance:**
+- Speed: 30-40 blocks/second
+- No fireworks required
+- No elytra durability loss
+- Recommended to enable ElytraUnbreak module
 
 ---
 

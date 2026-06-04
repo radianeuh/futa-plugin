@@ -60,6 +60,10 @@ public class ElytraFlyModule extends Module {
     }
 
     private void onTickStart(ClientBotTick.Starting starting) {
+        if (AutoLoginModule.isIn3cSpawn()) {
+            return;
+        }
+
         if (CONFIG.client.extra.autoArmor.enabled) {
             CONFIG.client.extra.autoArmor.enabled = false;
             MODULE.get(AutoArmor.class).syncEnabledFromConfig();
@@ -85,6 +89,9 @@ public class ElytraFlyModule extends Module {
             error("玩家未连接");
             return;
         }
+        if (AutoLoginModule.isIn3cSpawn()) {
+            return;
+        }
 
         pitch = 40;
         pitchingDown = true;
@@ -107,6 +114,13 @@ public class ElytraFlyModule extends Module {
     private void onTick(ClientBotTick event) {
         var player = CACHE.getPlayerCache().getThePlayer();
         if (player == null) return;
+        if (AutoLoginModule.isIn3cSpawn()) {
+            return;
+        }
+        if (player.getY() > config.pitch40UpperBounds + config.boundGap * 3) {
+            resetBounds(player);
+        }
+
         if (config.debug) {
             if (!Globals.BOT.isOnGround() && !Globals.BOT.isFallFlying() && !Globals.BOT.isTouchingWater()) {
                 info("BOT 在空中停止滑翔状态了" + tick);
@@ -219,7 +233,7 @@ public class ElytraFlyModule extends Module {
     private void resetBounds(EntityPlayer player) {
         config.pitch40UpperBounds = player.getY() - 5;
         config.pitch40LowerBounds = player.getY() - 5 - config.boundGap;
-        debug("边界重置 - upper: %.1f, lower: %.1f", config.pitch40UpperBounds, config.pitch40LowerBounds);
+        debug("resetBounds - upper: {}, lower: {}", config.pitch40UpperBounds, config.pitch40LowerBounds);
     }
 
     /**
