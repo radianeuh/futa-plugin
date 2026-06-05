@@ -64,4 +64,5 @@ public class FutaConfig {
     public BaseFinderConfig baseFinder = new BaseFinderConfig();
     public SearchAreaConfig searchArea = new SearchAreaConfig();
     public ContainerStressTestConfig stressTest = new ContainerStressTestConfig();
+    public AutoBrewerConfig autoBrewer = new AutoBrewerConfig();
 }

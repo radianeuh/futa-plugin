@@ -321,7 +321,7 @@ public class AutoLoginModule extends Module {
 
         int timeout = PLUGIN_CONFIG.autoLoginTimeout * 60 * 1000;
         if (offlineTime >= timeout) {
-            warn("离线超过设定分钟（实际{}分钟），执行自动重启", offlineMinutes);
+            warn("离线超过设定分钟（实际{}分钟），执行自动重启，可通过autologin timeout命令调整 ", offlineMinutes);
             reboot();
             // 重启后重置时间，避免重复重启
             lastOnlineTime = System.currentTimeMillis();
