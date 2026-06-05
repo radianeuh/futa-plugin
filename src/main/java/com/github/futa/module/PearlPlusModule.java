@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.github.futa.BaseModule;
 import com.github.futa.dto.ParsedMessage;
 import com.github.futa.util.FChatUtil;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.viaversion.nbt.io.MNBTIO;
 import com.viaversion.nbt.tag.CompoundTag;
@@ -54,7 +55,7 @@ public class PearlPlusModule extends BaseModule {
             return;
         }
 
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 

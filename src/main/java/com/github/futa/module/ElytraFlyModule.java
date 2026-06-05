@@ -2,6 +2,7 @@ package com.github.futa.module;
 
 import com.github.futa.FutaPlugin;
 import com.github.futa.config.ElytraFlyConfig;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.Globals;
 import com.zenith.Proxy;
@@ -68,7 +69,7 @@ public class ElytraFlyModule extends Module {
     }
 
     private void onTickStart(ClientBotTick.Starting starting) {
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 
@@ -100,7 +101,7 @@ public class ElytraFlyModule extends Module {
             error("玩家未连接");
             return;
         }
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 
@@ -128,7 +129,7 @@ public class ElytraFlyModule extends Module {
     private void onTick(ClientBotTick event) {
         var player = CACHE.getPlayerCache().getThePlayer();
         if (player == null) return;
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
         if (player.getY() > config.pitch40UpperBounds + config.boundGap * 3) {

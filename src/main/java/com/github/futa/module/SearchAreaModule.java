@@ -3,6 +3,7 @@ package com.github.futa.module;
 import com.github.futa.BaseModule;
 import com.github.futa.FutaPlugin;
 import com.github.futa.config.SearchAreaConfig;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -374,7 +375,7 @@ public class SearchAreaModule extends BaseModule {
     }
 
     private void onTickStart(ClientBotTick.Starting starting) {
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 
@@ -396,7 +397,7 @@ public class SearchAreaModule extends BaseModule {
     private void onTick(ClientBotTick event) {
         var player = CACHE.getPlayerCache().getThePlayer();
         if (player == null) return;
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 

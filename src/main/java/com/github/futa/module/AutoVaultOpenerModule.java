@@ -4,6 +4,7 @@ import com.github.futa.FutaPlugin;
 import com.github.futa.config.AutoVaultOpenerConfig;
 import com.github.futa.dto.Ticket;
 import com.github.futa.util.NodeClient;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -441,7 +442,7 @@ public class AutoVaultOpenerModule extends AbstractInventoryModule {
         }
 
         if (currentState == State.WAITING_FOR_INGAME) {
-            if (!AutoLoginModule.isIn3cSpawn(CACHE.getPlayerCache().getThePlayer().getX(), CACHE.getPlayerCache().getThePlayer().getZ())) {
+            if (!ZUtil.isIn3cSpawn(CACHE.getPlayerCache().getThePlayer().getX(), CACHE.getPlayerCache().getThePlayer().getZ())) {
                 gotoLocation();
             }
         }

@@ -1,6 +1,7 @@
 package com.github.futa.module;
 
 import com.github.futa.util.InvUtil;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.cache.data.inventory.Container;
 import com.zenith.event.client.ClientBotTick;
@@ -84,7 +85,7 @@ public class AutoWitherModule extends AbstractInventoryModule {
     }
 
     private void onTick(ClientBotTick event) {
-        if (AutoLoginModule.isIn3cSpawn()) {
+        if (ZUtil.isIn3cSpawn()) {
             return;
         }
 

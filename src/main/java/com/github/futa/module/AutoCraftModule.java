@@ -3,6 +3,7 @@ package com.github.futa.module;
 import com.github.futa.BaseModule;
 import com.github.futa.dto.RecipeBean;
 import com.github.futa.util.RecipeMaterialCounter;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.google.common.collect.Lists;
 import com.zenith.cache.data.inventory.Container;
@@ -187,7 +188,7 @@ public class AutoCraftModule extends BaseModule {
                 var chestPos = prioritizedSourceChests.get(currentSourceChestIndex);
                 int originalIndex = PLUGIN_CONFIG.autoCraft.sourceChests.indexOf(chestPos);
                 int blockStateId = BlockStateInterface.getId(chestPos.x(), chestPos.y(), chestPos.z());
-                if (isValidContainer(blockStateId)) {
+                if (ZUtil.isValidContainer(blockStateId)) {
                     info("open source chest {} (original: {}) at ({}, {}, {})", currentSourceChestIndex, originalIndex, chestPos.x(), chestPos.y(), chestPos.z());
                     pathingFuture = BARITONE.rightClickBlock(chestPos.x(), chestPos.y(), chestPos.z());
                     pathingFuture.addExecutedListener(f -> interactTimer.reset());
@@ -382,7 +383,7 @@ public class AutoCraftModule extends BaseModule {
                 // 存储结果状态：开始寻路到成品箱子
                 BlockPos resultChest = PLUGIN_CONFIG.autoCraft.resultChest;
                 int blockStateId = BlockStateInterface.getId(resultChest.x(), resultChest.y(), resultChest.z());
-                if (isValidContainer(blockStateId)) {
+                if (ZUtil.isValidContainer(blockStateId)) {
                     info("Click result chest at ({}, {}, {})",
                             resultChest.x(),
                             resultChest.y(),
@@ -620,21 +621,6 @@ public class AutoCraftModule extends BaseModule {
 
         // 检查是否为箱子、桶或其他容器方块
         return (blockStateId >= BlockRegistry.CRAFTING_TABLE.minStateId() && blockStateId <= BlockRegistry.CRAFTING_TABLE.maxStateId());
-    }
-
-    /**
-     * 验证是否为有效的容器
-     */
-    private boolean isValidContainer(int blockStateId) {
-
-        // 检查是否为箱子、桶或其他容器方块
-        return (blockStateId >= BlockRegistry.CHEST.minStateId() && blockStateId <= BlockRegistry.CHEST.maxStateId()) ||
-                (blockStateId >= BlockRegistry.BARREL.minStateId() && blockStateId <= BlockRegistry.BARREL.maxStateId()) ||
-                (blockStateId >= BlockRegistry.HOPPER.minStateId() && blockStateId <= BlockRegistry.HOPPER.maxStateId()) ||
-                (blockStateId >= BlockRegistry.DROPPER.minStateId() && blockStateId <= BlockRegistry.DROPPER.maxStateId()) ||
-                (blockStateId >= BlockRegistry.SHULKER_BOX.minStateId() && blockStateId <= BlockRegistry.SHULKER_BOX.maxStateId()) ||
-                (blockStateId >= BlockRegistry.WHITE_SHULKER_BOX.minStateId() && blockStateId <= BlockRegistry.BLACK_SHULKER_BOX.maxStateId()) ||
-                (blockStateId >= BlockRegistry.DISPENSER.minStateId() && blockStateId <= BlockRegistry.DISPENSER.maxStateId());
     }
 
     /**

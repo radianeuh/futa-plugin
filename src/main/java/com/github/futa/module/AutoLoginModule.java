@@ -1,5 +1,6 @@
 package com.github.futa.module;
 
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.Globals;
 import com.zenith.Proxy;
@@ -102,7 +103,7 @@ public class AutoLoginModule extends Module {
     public boolean getOnline() {
         boolean connected = Proxy.getInstance().isConnected();
 
-        return connected && !isIn3cSpawn(CACHE.getPlayerCache().getThePlayer().getX(), CACHE.getPlayerCache().getThePlayer().getZ());
+        return connected && !ZUtil.isIn3cSpawn(CACHE.getPlayerCache().getThePlayer().getX(), CACHE.getPlayerCache().getThePlayer().getZ());
     }
 
     public void reboot() {
@@ -395,26 +396,4 @@ public class AutoLoginModule extends Module {
         return null;
     }
 
-    /**
-     * 判断坐标 (x, z) 是否在区域 [100,300] × [100,300] 内
-     *
-     * @return true 表示在区域内，否则 false
-     */
-    public static boolean isIn3cSpawn() {
-        if (!Globals.CONFIG.client.server.address.toLowerCase().contains("3c3u.org")) {
-            return false;
-        }
-        return isIn3cSpawn(CACHE.getPlayerCache().getX(), CACHE.getPlayerCache().getZ());
-    }
-
-    /**
-     * 判断坐标 (x, z) 是否在区域 [100,300] × [100,300] 内
-     *
-     * @param x x坐标
-     * @param z z坐标
-     * @return true 表示在区域内，否则 false
-     */
-    public static boolean isIn3cSpawn(double x, double z) {
-        return x >= 100 && x <= 300 && z >= 100 && z <= 300;
-    }
 }
