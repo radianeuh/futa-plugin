@@ -88,8 +88,6 @@ public class ElytraFlyModule extends Module {
         goingUp = true;
         lastY = player.getY();
         // 重置 goto 目标，防止跨会话残留导致转圈
-        config.targetX = 0;
-        config.targetZ = 0;
 
         info("ElytraFly 开始 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
     }
@@ -110,8 +108,6 @@ public class ElytraFlyModule extends Module {
         goingUp = true;
         lastY = player.getY();
         // 重置 goto 目标，防止跨会话残留导致转圈
-        config.targetX = 0;
-        config.targetZ = 0;
         info("ElytraFly 已启用 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
 
     }
@@ -281,8 +277,7 @@ public class ElytraFlyModule extends Module {
         double dx = player.getX() - config.targetX;
         double dz = player.getZ() - config.targetZ;
         double distance = Math.sqrt(dx * dx + dz * dz);
-
-        if (distance <= config.disconnectDistance) {
+        if (distance <= config.disconnectDistance && (config.targetX != 0 || config.targetZ != 0)) {
             info("已到达目标坐标 (" + config.targetX + ", " + config.targetZ + ") 附近，距离: " + String.format("%.1f", distance) + " 格");
             info("正在断开连接...");
             Proxy.getInstance().disconnect();

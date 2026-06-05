@@ -1,5 +1,6 @@
 package com.github.futa.module;
 
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.Globals;
 import com.zenith.cache.data.inventory.Container;
@@ -361,7 +362,7 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
         BlockPos chestPos = PLUGIN_CONFIG.netherWartFarm.storageChest;
         int blockStateId = BlockStateInterface.getId(chestPos.x(), chestPos.y(), chestPos.z());
 
-        if (!isValidContainer(blockStateId)) {
+        if (!ZUtil.isValidContainer(blockStateId)) {
             if (PLUGIN_CONFIG.netherWartFarm.debugMode) {
                 info("Invalid container at chest position, skipping storage");
             }
@@ -677,12 +678,6 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
     private boolean isNetherWartMature(int blockStateId) {
         // 地狱疣有3个生长阶段，3为成熟
         return blockStateId == BlockRegistry.NETHER_WART.maxStateId();
-    }
-
-    private boolean isValidContainer(int blockStateId) {
-        return (blockStateId >= BlockRegistry.CHEST.minStateId() && blockStateId <= BlockRegistry.CHEST.maxStateId()) ||
-                (blockStateId >= BlockRegistry.BARREL.minStateId() && blockStateId <= BlockRegistry.BARREL.maxStateId()) ||
-                (blockStateId >= BlockRegistry.SHULKER_BOX.minStateId() && blockStateId <= BlockRegistry.SHULKER_BOX.maxStateId());
     }
 
     // 检查指定位置附近是否有其他玩家

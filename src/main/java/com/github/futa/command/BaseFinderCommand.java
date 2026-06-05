@@ -1,6 +1,5 @@
 package com.github.futa.command;
 
-import com.github.futa.config.BaseFinderConfig;
 import com.github.futa.module.BaseFinder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.zenith.command.api.Command;
@@ -26,7 +25,7 @@ public class BaseFinderCommand extends Command {
                 .category(CommandCategory.MODULE)
                 .description("""
                         BaseFinder - 基地检测模块
-
+                        
                         自动扫描渲染距离内的区块，检测潜在的玩家基地。
                         支持检测：
                         - 传送门 (Portal)
@@ -56,7 +55,8 @@ public class BaseFinderCommand extends Command {
                         "scanIntervalTicks <ticks>",
                         "saveToFile on/off",
                         "loadOnStart on/off",
-                        "displayCoords on/off"
+                        "displayCoords on/off",
+                        "info"
                 )
                 .build();
     }
@@ -219,7 +219,32 @@ public class BaseFinderCommand extends Command {
                             .title("Display Coords " + toggleStrCaps(PLUGIN_CONFIG.baseFinder.displayCoords))
                             .primaryColor();
                     return OK;
-                })));
+                })))
+                .then(literal("info").executes(c -> {
+                    BaseFinder module = MODULE.get(BaseFinder.class);
+                    java.util.List<String> locations = module.getDetectedLocations();
+
+                    if (locations.isEmpty()) {
+                        c.getSource().getEmbed()
+                                .title("BaseFinder 信息")
+                                .description("暂无检测到的坐标")
+                                .primaryColor();
+                    } else {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("已检测到 ").append(locations.size()).append(" 个位置:\n\n");
+                        for (int i = 0; i < Math.min(locations.size(), 20); i++) {
+                            sb.append("**").append(i + 1).append("**: ").append(locations.get(i)).append("\n");
+                        }
+                        if (locations.size() > 20) {
+                            sb.append("\n... 还有 ").append(locations.size() - 20).append(" 条记录");
+                        }
+                        c.getSource().getEmbed()
+                                .title("BaseFinder 检测结果")
+                                .description(sb.toString())
+                                .primaryColor();
+                    }
+                    return OK;
+                }));
     }
 
     @Override

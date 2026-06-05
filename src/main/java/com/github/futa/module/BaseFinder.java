@@ -3,6 +3,8 @@ package com.github.futa.module;
 import com.github.futa.BaseModule;
 import com.github.futa.config.BaseFinderConfig;
 import com.github.rfresh2.EventConsumer;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.zenith.cache.data.entity.Entity;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.event.client.ClientConnectEvent;
@@ -28,7 +30,8 @@ import static com.zenith.Globals.CACHE;
  */
 public class BaseFinder extends BaseModule {
     private final BaseFinderConfig config = PLUGIN_CONFIG.baseFinder;
-    private final Set<String> detectedChunks = ConcurrentHashMap.newKeySet();
+    private final Set<String> scannedChunks = ConcurrentHashMap.newKeySet();
+    private final Queue<String> chunksToScan = new LinkedList<>();
     private int tickCounter = 0;
     private int entityScanTicks = 0;
     private int spamCooldownTicks = 0;
@@ -37,6 +40,10 @@ public class BaseFinder extends BaseModule {
     private BlockOptionalMetaLookup portalFilter;
     private BlockOptionalMetaLookup shulkerFilter;
     private BlockOptionalMetaLookup customBlockFilter;
+    private BlockOptionalMetaLookup combinedFilter;
+
+    // 检测到的坐标列表（用于保存到文件）
+    private final List<String> detectedLocations = new ArrayList<>();
 
     public BaseFinder() {
         initFilters();
@@ -60,6 +67,29 @@ public class BaseFinder extends BaseModule {
 
         // 自定义方块过滤器
         updateCustomBlockFilter();
+
+        // 合并所有过滤器
+        updateCombinedFilter();
+    }
+
+    private void updateCombinedFilter() {
+        IntOpenHashSet allBlockStateIds = new IntOpenHashSet();
+
+        // 添加传送门方块ID
+        for (int stateId = BlockRegistry.NETHER_PORTAL.minStateId(); stateId <= BlockRegistry.NETHER_PORTAL.maxStateId(); stateId++) {
+            allBlockStateIds.add(stateId);
+        }
+        // 添加潜影盒方块ID
+        for (int stateId = BlockRegistry.SHULKER_BOX.minStateId(); stateId <= BlockRegistry.BLACK_SHULKER_BOX.maxStateId(); stateId++) {
+            allBlockStateIds.add(stateId);
+        }
+
+        // 添加自定义方块ID
+        if (customBlockFilter != null) {
+            allBlockStateIds.addAll(customBlockFilter.getBlockStateIds());
+        }
+
+        combinedFilter = new BlockOptionalMetaLookup(allBlockStateIds);
     }
 
     private void updateCustomBlockFilter() {
@@ -72,7 +102,11 @@ public class BaseFinder extends BaseModule {
         }
         if (!blocks.isEmpty()) {
             customBlockFilter = new BlockOptionalMetaLookup(blocks);
+        } else {
+            customBlockFilter = null;
         }
+        // 更新合并过滤器
+        updateCombinedFilter();
     }
 
     @Override
@@ -97,12 +131,18 @@ public class BaseFinder extends BaseModule {
         info("BaseFinder enabled");
     }
 
+    public java.util.List<String> getDetectedLocations() {
+        return java.util.Collections.unmodifiableList(detectedLocations);
+    }
+
     @Override
     public void onDisable() {
         if (config.saveToFile) {
             saveData();
         }
-        detectedChunks.clear();
+        scannedChunks.clear();
+        chunksToScan.clear();
+        detectedLocations.clear();
         info("BaseFinder disabled");
     }
 
@@ -114,10 +154,15 @@ public class BaseFinder extends BaseModule {
             spamCooldownTicks--;
         }
 
-        // 定时扫描渲染距离内的区块
+        // 每 tick 从队列中扫描一个区块
+        if (!chunksToScan.isEmpty()) {
+            scanOneChunk();
+        }
+
+        // 定时添加新的区块到队列
         if (tickCounter >= config.scanIntervalTicks) {
             tickCounter = 0;
-            scanNearbyChunks();
+            addChunksToScanQueue();
         }
 
         // 实体扫描
@@ -140,151 +185,156 @@ public class BaseFinder extends BaseModule {
         if (config.saveToFile) {
             saveData();
         }
-        detectedChunks.clear();
+        scannedChunks.clear();
+        chunksToScan.clear();
+        detectedLocations.clear();
     }
 
-    private void scanNearbyChunks() {
-        String dimension = CACHE.getChunkCache().getCurrentDimension() != null ?
-                CACHE.getChunkCache().getCurrentDimension().name() : "minecraft:overworld";
+    private void addChunksToScanQueue() {
+        int viewDistance = CACHE.getChunkCache().getServerViewDistance();
+        int playerChunkX = (int) (CACHE.getPlayerCache().getX()) >> 4;
+        int playerChunkZ = (int) (CACHE.getPlayerCache().getZ()) >> 4;
 
+        // 添加渲染距离内的区块到队列（跳过已扫描的）
+        for (int x = -viewDistance; x <= viewDistance; x++) {
+            for (int z = -viewDistance; z <= viewDistance; z++) {
+                int chunkX = playerChunkX + x;
+                int chunkZ = playerChunkZ + z;
+                String chunkKey = chunkX + ":" + chunkZ;
 
-        // 传送门检测
+                if (!scannedChunks.contains(chunkKey) && !chunksToScan.contains(chunkKey)) {
+                    chunksToScan.add(chunkKey);
+                }
+            }
+        }
+    }
+
+    private void scanOneChunk() {
+        if (chunksToScan.isEmpty()) return;
+
+        String chunkKey = chunksToScan.poll();
+        if (chunkKey == null) return;
+
+        String[] parts = chunkKey.split(":");
+        if (parts.length != 2) return;
+
+        int chunkX = Integer.parseInt(parts[0]);
+        int chunkZ = Integer.parseInt(parts[1]);
+
+        // 标记为已扫描
+        scannedChunks.add(chunkKey);
+
+        // 第一步：使用合并过滤器快速扫描，找到一个就停止
+        List<BlockPos> quickScan = WorldScanner.scanChunk(combinedFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
+        if (quickScan.isEmpty()) {
+            // 没有找到任何方块，跳过详细扫描
+            return;
+        }
+
+        // 第二步：细分扫描，确定具体是哪种方块
         if (config.portalFinder) {
-            scanPortals(dimension);
+            scanPortals(chunkX, chunkZ);
         }
-
-        // 潜影盒检测
         if (config.shulkerFinder) {
-            scanShulkerBoxes(dimension);
+            scanShulkerBoxes(chunkX, chunkZ);
         }
-
-        // 自定义方块列表检测
         if (config.blockListEnabled) {
-            scanCustomBlockList(dimension);
+            scanCustomBlockList(chunkX, chunkZ);
         }
     }
 
-    private void scanPortals(String dimension) {
-        List<BlockPos> positions = WorldScanner.scanCurrentViewDistance(portalFilter);
+    private void scanPortals(int chunkX, int chunkZ) {
+        // 扫描单个区块，max=1，找到一个就停止
+        List<BlockPos> positions = WorldScanner.scanChunk(portalFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
 
         for (BlockPos pos : positions) {
-            String chunkKey = dimension + ":" + (pos.x() >> 4) + ":" + (pos.z() >> 4);
-            if (detectedChunks.contains(chunkKey)) continue;
-
-            addDetection(pos.x() >> 4, pos.z() >> 4, dimension, chunkKey, "Open Portal", pos.x(), pos.y(), pos.z());
+            String chunkKey = chunkX + ":" + chunkZ;
+            addDetection(chunkX, chunkZ, chunkKey, "Open Portal", pos.x(), pos.y(), pos.z());
         }
     }
 
-    private void scanShulkerBoxes(String dimension) {
-        List<BlockPos> positions = WorldScanner.scanCurrentViewDistance(shulkerFilter);
+    private void scanShulkerBoxes(int chunkX, int chunkZ) {
+        // 扫描单个区块，max=1，找到一个就停止
+        List<BlockPos> positions = WorldScanner.scanChunk(shulkerFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
 
-        // 按 chunk 分组统计
-        Map<String, List<BlockPos>> chunkShulkers = new HashMap<>();
         for (BlockPos pos : positions) {
-            String chunkKey = dimension + ":" + (pos.x() >> 4) + ":" + (pos.z() >> 4);
-            chunkShulkers.computeIfAbsent(chunkKey, k -> new ArrayList<>()).add(pos);
-        }
-
-        for (var entry : chunkShulkers.entrySet()) {
-            if (detectedChunks.contains(entry.getKey())) continue;
-
-            String[] parts = entry.getKey().split(":");
-            int chunkX = Integer.parseInt(parts[1]);
-            int chunkZ = Integer.parseInt(parts[2]);
-            BlockPos first = entry.getValue().get(0);
-
-            addDetection(chunkX, chunkZ, dimension, entry.getKey(),
-                    "Shulker (" + entry.getValue().size() + ")", first.x(), first.y(), first.z());
+            String chunkKey = chunkX + ":" + chunkZ;
+            addDetection(chunkX, chunkZ, chunkKey, "Shulker (1)", pos.x(), pos.y(), pos.z());
         }
     }
 
-    private void scanCustomBlockList(String dimension) {
+    private void scanCustomBlockList(int chunkX, int chunkZ) {
         if (customBlockFilter == null) {
             updateCustomBlockFilter();
             if (customBlockFilter == null) return;
         }
 
-        List<BlockPos> positions = WorldScanner.scanCurrentViewDistance(customBlockFilter);
+        // 扫描单个区块，max=1，找到一个就停止
+        List<BlockPos> positions = WorldScanner.scanChunk(customBlockFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
 
-        // 按 chunk 分组统计
-        Map<String, Integer> chunkCounts = new HashMap<>();
         for (BlockPos pos : positions) {
-            String chunkKey = dimension + ":" + (pos.x() >> 4) + ":" + (pos.z() >> 4);
-            chunkCounts.merge(chunkKey, 1, Integer::sum);
-        }
-
-        for (var entry : chunkCounts.entrySet()) {
-            if (detectedChunks.contains(entry.getKey())) continue;
-
-            if (entry.getValue() >= config.blockListThreshold) {
-                String[] parts = entry.getKey().split(":");
-                int chunkX = Integer.parseInt(parts[1]);
-                int chunkZ = Integer.parseInt(parts[2]);
-
-                addDetection(chunkX, chunkZ, dimension, entry.getKey(),
-                        "Block List (" + entry.getValue() + ")", 0, 0, 0);
-            }
+            String chunkKey = chunkX + ":" + chunkZ;
+            addDetection(chunkX, chunkZ, chunkKey, "Block List (1)", pos.x(), pos.y(), pos.z());
         }
     }
 
     private void scanEntities() {
         var entities = CACHE.getEntityCache().getEntities().values();
         Map<String, Integer> chunkEntityCount = new HashMap<>();
-        String dimension = CACHE.getChunkCache().getCurrentDimension() != null ?
-                CACHE.getChunkCache().getCurrentDimension().name() : "minecraft:overworld";
 
         for (var entity : entities) {
             int chunkX = (int) (entity.getX()) >> 4;
             int chunkZ = (int) (entity.getZ()) >> 4;
-            String chunkKey = dimension + ":" + chunkX + ":" + chunkZ;
-
-            if (detectedChunks.contains(chunkKey)) continue;
+            String chunkKey = chunkX + ":" + chunkZ;
 
             // 物品展示框检测
             if (config.itemFrameFinder && isItemFrame(entity)) {
-                addDetection(chunkX, chunkZ, dimension, chunkKey, "Item Frame",
+                addDetection(chunkX, chunkZ, chunkKey, "Item Frame",
                         (int) entity.getX(), (int) entity.getY(), (int) entity.getZ());
                 continue;
             }
 
             // 末影珍珠检测
             if (config.enderPearlFinder && isEnderPearl(entity)) {
-                addDetection(chunkX, chunkZ, dimension, chunkKey, "Ender Pearl",
+                addDetection(chunkX, chunkZ, chunkKey, "Ender Pearl",
                         (int) entity.getX(), (int) entity.getY(), (int) entity.getZ());
                 continue;
             }
 
             // 命名牌实体检测
             if (config.nameTagFinder && hasCustomName(entity)) {
-                addDetection(chunkX, chunkZ, dimension, chunkKey, "NameTagged Entity",
+                addDetection(chunkX, chunkZ, chunkKey, "NameTagged Entity",
                         (int) entity.getX(), (int) entity.getY(), (int) entity.getZ());
                 continue;
             }
 
             // 村民检测
             if (config.villagerFinder && isLeveledVillager(entity)) {
-                addDetection(chunkX, chunkZ, dimension, chunkKey, "Leveled Villager",
+                addDetection(chunkX, chunkZ, chunkKey, "Leveled Villager",
                         (int) entity.getX(), (int) entity.getY(), (int) entity.getZ());
                 continue;
             }
 
             // 船检测
             if (config.boatFinder && isBoat(entity)) {
-                addDetection(chunkX, chunkZ, dimension, chunkKey, "Boat",
+                addDetection(chunkX, chunkZ, chunkKey, "Boat",
                         (int) entity.getX(), (int) entity.getY(), (int) entity.getZ());
                 continue;
             }
         }
     }
 
-    private void addDetection(int chunkX, int chunkZ, String dimension, String chunkKey, String reason, int x, int y, int z) {
-        if (spamCooldownTicks > 0 && !detectedChunks.isEmpty()) return;
+    private void addDetection(int chunkX, int chunkZ, String chunkKey, String reason, int x, int y, int z) {
+        if (spamCooldownTicks > 0) return;
 
-        detectedChunks.add(chunkKey);
         spamCooldownTicks = config.tickDelay;
 
-        String coords = config.displayCoords ? String.format(" near X%d, Y%d, Z%d", x, y, z) : "";
-        info("Found {} at chunk [{}, {}]{}", reason, chunkX, chunkZ, coords);
+        String coords = String.format("X=%d, Y=%d, Z=%d", x, y, z);
+        info("Found {} at chunk [{}, {}] {}", reason, chunkX, chunkZ, coords);
+
+        // 保存检测到的坐标到列表
+        String location = String.format("%s | Chunk[%d, %d] | %s", reason, chunkX, chunkZ, coords);
+        detectedLocations.add(location);
     }
 
     // 实体检测辅助方法
@@ -320,27 +370,16 @@ public class BaseFinder extends BaseModule {
     // 数据持久化
     private void saveData() {
         try {
-            Path dir = Path.of("plugins/data/basefinder");
+            Path dir = Path.of("basefinder");
             Files.createDirectories(dir);
-            Path file = dir.resolve("detected_chunks.json");
+            Path file = dir.resolve("detected_locations.json");
 
-            StringBuilder json = new StringBuilder("{\"chunks\":[");
-            boolean first = true;
-            for (String chunkKey : detectedChunks) {
-                if (!first) json.append(",");
-                first = false;
+            Map<String, Object> data = new HashMap<>();
+            data.put("locations", detectedLocations);
 
-                String[] parts = chunkKey.split(":");
-                if (parts.length == 3) {
-                    json.append("{\"dimension\":\"").append(parts[0])
-                            .append("\",\"chunkX\":").append(parts[1])
-                            .append(",\"chunkZ\":").append(parts[2])
-                            .append("}");
-                }
-            }
-            json.append("]}");
-
-            Files.writeString(file, json.toString());
+            Gson gson = new Gson();
+            String json = gson.toJson(data);
+            Files.writeString(file, json);
         } catch (IOException e) {
             error("Failed to save data: " + e.getMessage());
         }
@@ -348,53 +387,20 @@ public class BaseFinder extends BaseModule {
 
     private void loadData() {
         try {
-            Path file = Path.of("plugins/data/basefinder/detected_chunks.json");
+            Path file = Path.of("basefinder/detected_locations.json");
             if (!Files.exists(file)) return;
 
             String json = Files.readString(file);
-            if (json.contains("\"chunks\"")) {
-                String chunksPart = json.substring(json.indexOf("\"chunks\":[") + 11, json.lastIndexOf("]"));
-                if (!chunksPart.isEmpty()) {
-                    String[] entries = chunksPart.split("\\},\\{");
-                    for (String entry : entries) {
-                        String dimension = extractJsonValue(entry, "dimension");
-                        String chunkX = extractJsonValue(entry, "chunkX");
-                        String chunkZ = extractJsonValue(entry, "chunkZ");
+            Gson gson = new Gson();
+            java.lang.reflect.Type type = new TypeToken<Map<String, List<String>>>() {
+            }.getType();
+            Map<String, List<String>> data = gson.fromJson(json, type);
 
-                        if (dimension != null && chunkX != null && chunkZ != null) {
-                            detectedChunks.add(dimension + ":" + chunkX + ":" + chunkZ);
-                        }
-                    }
-                }
+            if (data != null && data.containsKey("locations")) {
+                detectedLocations.addAll(data.get("locations"));
             }
         } catch (IOException e) {
             error("Failed to load data: " + e.getMessage());
         }
-    }
-
-    private String extractJsonValue(String json, String key) {
-        String searchKey = "\"" + key + "\":";
-        int startIndex = json.indexOf(searchKey);
-        if (startIndex == -1) return null;
-
-        startIndex += searchKey.length();
-        while (startIndex < json.length() && json.charAt(startIndex) == ' ') {
-            startIndex++;
-        }
-
-        if (startIndex >= json.length()) return null;
-
-        if (json.charAt(startIndex) == '"') {
-            startIndex++;
-            int endIndex = json.indexOf("\"", startIndex);
-            if (endIndex == -1) return null;
-            return json.substring(startIndex, endIndex);
-        }
-
-        int endIndex = startIndex;
-        while (endIndex < json.length() && (Character.isDigit(json.charAt(endIndex)) || json.charAt(endIndex) == '-')) {
-            endIndex++;
-        }
-        return json.substring(startIndex, endIndex);
     }
 }

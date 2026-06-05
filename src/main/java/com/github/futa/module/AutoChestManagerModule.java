@@ -4,6 +4,7 @@ import com.github.futa.FutaPlugin;
 import com.github.futa.config.AutoChestManagerConfig;
 import com.github.futa.dto.ChestLocation;
 import com.github.futa.util.EnchantmentUtil;
+import com.github.futa.util.ZUtil;
 import com.github.rfresh2.EventConsumer;
 import com.zenith.cache.data.inventory.Container;
 import com.zenith.event.chat.SystemChatEvent;
@@ -439,7 +440,7 @@ public class AutoChestManagerModule extends AbstractInventoryModule {
         if (openContainer != null && openContainer.getContainerId() != 0) {
             // 验证是否为潜影盒
             int blockStateId = BlockStateInterface.getId(config.shulkerX, config.shulkerY, config.shulkerZ);
-            if (!isShulkerBox(blockStateId)) {
+            if (!ZUtil.isShulkerBox(blockStateId)) {
                 error("打开的容器不是潜影盒");
                 moveToNextChest();
                 return;
@@ -777,12 +778,6 @@ public class AutoChestManagerModule extends AbstractInventoryModule {
     }
 
 
-    private boolean isShulkerBox(int blockStateId) {
-        // 检查是否为潜影盒方块
-        return blockStateId >= BlockRegistry.SHULKER_BOX.minStateId() &&
-                blockStateId <= BlockRegistry.BLACK_SHULKER_BOX.maxStateId();
-    }
-
     /**
      * 验证是否为有效的垃圾桶容器
      */
@@ -1001,7 +996,7 @@ public class AutoChestManagerModule extends AbstractInventoryModule {
         }
 
         int blockStateId = BlockStateInterface.getId(config.shulkerX, config.shulkerY, config.shulkerZ);
-        if (!isShulkerBox(blockStateId)) {
+        if (!ZUtil.isShulkerBox(blockStateId)) {
             info("配置的坐标处没有潜影盒，尝试放置新的潜影盒");
             placeNewShulkerBox(config.shulkerX, config.shulkerY, config.shulkerZ);
 
@@ -1009,7 +1004,7 @@ public class AutoChestManagerModule extends AbstractInventoryModule {
             try {
                 Thread.sleep(1000);
                 blockStateId = BlockStateInterface.getId(config.shulkerX, config.shulkerY, config.shulkerZ);
-                return isShulkerBox(blockStateId);
+                return ZUtil.isShulkerBox(blockStateId);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;

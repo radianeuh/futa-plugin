@@ -703,7 +703,7 @@ public class AutoVaultOpenerModule extends AbstractInventoryModule {
                     int y = playerY + dy;
                     int z = playerZ + dz;
 
-                    if (isShulkerBox(x, y, z)) {
+                    if (ZUtil.isShulkerBox(x, y, z)) {
                         info("找到潜影盒在坐标: {}, {}, {}", x, y, z);
                         openShulkerBox(x, y, z);
                         foundShulker = true;
@@ -719,14 +719,6 @@ public class AutoVaultOpenerModule extends AbstractInventoryModule {
             warn("未找到潜影盒");
             handleError("未找到潜影盒");
         }
-    }
-
-    private boolean isShulkerBox(int x, int y, int z) {
-        ChunkCache chunkCache = CACHE.getChunkCache();
-        int blockStateId = BlockStateInterface.getId(x, y, z);
-        // 检查是否是潜影盒
-        return blockStateId >= BlockRegistry.SHULKER_BOX.minStateId() &&
-                blockStateId <= BlockRegistry.SHULKER_BOX.maxStateId();
     }
 
     private void openShulkerBox(int x, int y, int z) {
