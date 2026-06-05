@@ -1,5 +1,6 @@
 package com.github.futa.module;
 
+import com.github.futa.BaseModule;
 import com.github.futa.FutaPlugin;
 import com.github.futa.config.SearchAreaConfig;
 import com.github.rfresh2.EventConsumer;
@@ -9,8 +10,6 @@ import com.zenith.Proxy;
 import com.zenith.cache.data.entity.EntityPlayer;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.player.Bot;
-import com.zenith.feature.player.RotationHelper;
-import com.zenith.module.api.Module;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +28,7 @@ import static com.zenith.Globals.CACHE;
  * 1. Rectangle - 矩形锯齿形遍历
  * 2. Spiral - 螺旋扩展遍历
  */
-public class SearchAreaModule extends Module {
+public class SearchAreaModule extends BaseModule {
 
     SearchAreaConfig config = FutaPlugin.PLUGIN_CONFIG.searchArea;
 
@@ -143,8 +142,8 @@ public class SearchAreaModule extends Module {
                     module.info("预估完成时间将在搜索过程中计算");
                 } else {
                     // 朝起始点转向
-                    var rotation = RotationHelper.rotationTo(data.currPos[0], 0, data.currPos[2]);
-                    ElytraFlyModule.nextYaw = rotation.getX();
+                    PLUGIN_CONFIG.elytraFly.targetX = data.currPos[0];
+                    PLUGIN_CONFIG.elytraFly.targetZ = data.currPos[2];
                 }
                 return;
             }
@@ -197,8 +196,8 @@ public class SearchAreaModule extends Module {
                 data.yawDirection = (data.yawDirection == -90.0) ? 90.0 : -90.0;
             } else {
                 // 继续水平移动
-                var rotation = RotationHelper.rotationTo(targetX, 0, (int) player.getZ());
-                ElytraFlyModule.nextYaw = rotation.getX();
+                PLUGIN_CONFIG.elytraFly.targetX = targetX;
+                PLUGIN_CONFIG.elytraFly.targetZ = (int) player.getZ();
             }
         }
 
@@ -210,8 +209,9 @@ public class SearchAreaModule extends Module {
                 data.mainPath = true;
             } else {
                 // 继续垂直移动
-                var rotation = RotationHelper.rotationTo((int) player.getX(), 0, data.currPos[2]);
-                ElytraFlyModule.nextYaw = rotation.getX();
+
+                PLUGIN_CONFIG.elytraFly.targetX = (int) player.getX();
+                PLUGIN_CONFIG.elytraFly.targetZ = data.currPos[2];
 
             }
         }
@@ -294,9 +294,8 @@ public class SearchAreaModule extends Module {
                 spiralData.spiralWidth += config.pathGap * 16;
             } else {
                 // 继续水平移动
-                var rotation = RotationHelper.rotationTo(targetX, 0, (int) player.getZ());
-                ElytraFlyModule.nextYaw = rotation.getX();
-
+                PLUGIN_CONFIG.elytraFly.targetX = targetX;
+                PLUGIN_CONFIG.elytraFly.targetZ = (int) player.getZ();
             }
         }
 
@@ -328,9 +327,8 @@ public class SearchAreaModule extends Module {
                 spiralData.spiralHeight += config.pathGap * 16;
             } else {
                 // 继续垂直移动
-                var rotation = RotationHelper.rotationTo((int) player.getX(), 0, targetZ);
-                ElytraFlyModule.nextYaw = rotation.getX();
-
+                PLUGIN_CONFIG.elytraFly.targetX = (int) player.getX();
+                PLUGIN_CONFIG.elytraFly.targetZ = targetZ;
             }
         }
 
@@ -413,6 +411,9 @@ public class SearchAreaModule extends Module {
             lastSaveTime = currentTime;
         }
 
+        if (PLUGIN_CONFIG.elytraFly.disconnectOnReach == true) {
+            PLUGIN_CONFIG.elytraFly.disconnectOnReach = false;
+        }
         // 执行模式逻辑
         searchMode.onTick(player);
 
@@ -429,6 +430,9 @@ public class SearchAreaModule extends Module {
     @Override
     public void onDisable() {
         savePathData();
+        // 清理 ElytraFly 的目标坐标，防止关闭后残留导致转圈
+        PLUGIN_CONFIG.elytraFly.targetX = 0;
+        PLUGIN_CONFIG.elytraFly.targetZ = 0;
         info("SearchAreaModule 已停用，进度已保存");
     }
 

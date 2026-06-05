@@ -21,9 +21,9 @@ public class BaseFinderConfig {
     // 自定义方块列表
     public boolean blockListEnabled = true;
     public List<String> blockList = List.of(
-            "minecraft:crafting_table",
+            "minecraft:crafter",
             "minecraft:ender_chest",
-            "minecraft:smooth_quartz",
+            "minecraft:beacon",
             "minecraft:redstone_block",
             "minecraft:slime_block",
             "minecraft:diamond_block"
@@ -32,8 +32,6 @@ public class BaseFinderConfig {
 
     // 通用设置
     public boolean displayCoords = true;
-    public int minYOffset = 0;
-    public int maxYOffset = 0;
     public int tickDelay = 5;
 
     // 数据持久化

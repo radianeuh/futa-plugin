@@ -3,18 +3,13 @@ package com.github.futa.module;
 import com.github.futa.BaseModule;
 import com.github.futa.config.ContainerStressTestConfig;
 import com.github.rfresh2.EventConsumer;
-import com.zenith.cache.data.inventory.Container;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.inventory.InventoryActionRequest;
 import com.zenith.feature.inventory.actions.CloseContainer;
 import com.zenith.feature.inventory.actions.InventoryAction;
-import com.zenith.feature.inventory.actions.ShiftClick;
+import com.zenith.feature.inventory.util.InventoryActionMacros;
 import com.zenith.mc.block.BlockPos;
 import com.zenith.util.RequestFuture;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Hand;
-import org.geysermc.mcprotocollib.protocol.data.game.inventory.ShiftClickItemAction;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundUseItemOnPacket;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,23 +17,23 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.rfresh2.EventConsumer.of;
-import static com.zenith.Globals.CACHE;
-import static com.zenith.Globals.INVENTORY;
+import static com.zenith.Globals.*;
 
 /**
  * 容器压力测试模块
  * <p>
  * 测试内容：
  * 1. 打开箱子的 tick 延迟
- * 2. 从箱子提取物品的 tick 延迟
- * 3. 不同 actionDelayTicks 下的成功率
- * 4. 多个箱子的测试对比
+ * 2. 存货（deposit）的 tick 延迟 — 使用 InventoryActionMacros.deposit
+ * 3. 取货（withdraw）的 tick 延迟 — 使用 InventoryActionMacros.withdraw
+ * 4. 不同 actionDelayTicks 下的成功率
+ * 5. 多个箱子的测试对比
  */
 public class ContainerStressTestModule extends BaseModule {
     public static final int PRIORITY = 9000;
-    private static final int OPEN_TIMEOUT = 40;   // 打开超时 tick
-    private static final int EXTRACT_TIMEOUT = 60; // 提取超时 tick
-    private static final int CLOSE_TIMEOUT = 20;   // 关闭超时 tick
+    private static final int OPEN_TIMEOUT = 40;
+    private static final int ACTION_TIMEOUT = 80;
+    private static final int CLOSE_TIMEOUT = 20;
 
     private final ContainerStressTestConfig config = PLUGIN_CONFIG.stressTest;
 
@@ -49,28 +44,22 @@ public class ContainerStressTestModule extends BaseModule {
     private int currentChestIndex = 0;
     private int currentDelayIndex = 0;
     private int currentRepeat = 0;
-
-    // 当前测试的 delay 值
     private int currentDelay = 0;
-
-    // 当前箱子坐标
     private BlockPos currentChest = BlockPos.ZERO;
 
     // 操作 futures
     private RequestFuture inventoryActionFuture = RequestFuture.rejected;
 
     // ========== 数据收集 ==========
-    // delay值 → 每次打开耗时列表
     private final Map<Integer, List<Long>> openTicksByDelay = new HashMap<>();
-    // delay值 → 每次提取耗时列表
-    private final Map<Integer, List<Long>> extractTicksByDelay = new HashMap<>();
-    // delay值 → [成功数, 总数]
+    private final Map<Integer, List<Long>> depositTicksByDelay = new HashMap<>();
+    private final Map<Integer, List<Long>> withdrawTicksByDelay = new HashMap<>();
     private final Map<Integer, int[]> openSuccessByDelay = new HashMap<>();
-    private final Map<Integer, int[]> extractSuccessByDelay = new HashMap<>();
+    private final Map<Integer, int[]> depositSuccessByDelay = new HashMap<>();
+    private final Map<Integer, int[]> withdrawSuccessByDelay = new HashMap<>();
 
     // 单次测试的临时数据
     private long testStartTick = 0;
-    private boolean chestOpened = false;
 
     @Override
     public boolean enabledSetting() {
@@ -115,25 +104,24 @@ public class ContainerStressTestModule extends BaseModule {
         currentChest = BlockPos.ZERO;
         inventoryActionFuture = RequestFuture.rejected;
         openTicksByDelay.clear();
-        extractTicksByDelay.clear();
+        depositTicksByDelay.clear();
+        withdrawTicksByDelay.clear();
         openSuccessByDelay.clear();
-        extractSuccessByDelay.clear();
+        depositSuccessByDelay.clear();
+        withdrawSuccessByDelay.clear();
     }
 
     // ==================== 测试流程控制 ====================
 
     private void startNextTest() {
         if (currentDelayIndex >= config.delayValues.length) {
-            // 所有 delay 测试完成
             if (currentChestIndex < config.testChests.size() - 1) {
-                // 切换到下一个箱子
                 currentChestIndex++;
                 currentDelayIndex = 0;
                 currentRepeat = 0;
                 info("=== 切换到箱子 {} / {} ===", currentChestIndex + 1, config.testChests.size());
                 startNextTest();
             } else {
-                // 全部测试完成
                 info("所有测试完成，生成报告...");
                 state = State.REPORT;
             }
@@ -144,21 +132,37 @@ public class ContainerStressTestModule extends BaseModule {
         currentDelay = config.delayValues[currentDelayIndex];
         currentRepeat = 0;
 
-        // 初始化数据结构
         openTicksByDelay.computeIfAbsent(currentDelay, k -> new ArrayList<>());
-        extractTicksByDelay.computeIfAbsent(currentDelay, k -> new ArrayList<>());
+        depositTicksByDelay.computeIfAbsent(currentDelay, k -> new ArrayList<>());
+        withdrawTicksByDelay.computeIfAbsent(currentDelay, k -> new ArrayList<>());
         openSuccessByDelay.computeIfAbsent(currentDelay, k -> new int[2]);
-        extractSuccessByDelay.computeIfAbsent(currentDelay, k -> new int[2]);
+        depositSuccessByDelay.computeIfAbsent(currentDelay, k -> new int[2]);
+        withdrawSuccessByDelay.computeIfAbsent(currentDelay, k -> new int[2]);
 
         info("=== 开始测试: 箱子 ({},{},{}) delay={} 重复 {}/{} ===",
                 currentChest.x(), currentChest.y(), currentChest.z(),
                 currentDelay, currentRepeat + 1, config.repeatCount);
 
-        beginOpenTest();
+        beginOpenForDeposit();
     }
 
-    private void beginOpenTest() {
-        // 关闭可能打开的容器
+    /**
+     * 第一轮：打开箱子，准备存货
+     */
+    private void beginOpenForDeposit() {
+        closeIfOpen();
+        state = State.AWAIT_CLOSE_FOR_DEPOSIT_OPEN;
+    }
+
+    /**
+     * 第二轮：打开箱子，准备取货
+     */
+    private void beginOpenForWithdraw() {
+        closeIfOpen();
+        state = State.AWAIT_CLOSE_FOR_WITHDRAW_OPEN;
+    }
+
+    private void closeIfOpen() {
         var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
         if (openContainer != null && openContainer.getContainerId() != 0) {
             List<InventoryAction> actions = new ArrayList<>();
@@ -169,81 +173,106 @@ public class ContainerStressTestModule extends BaseModule {
                     .actions(actions)
                     .priority(PRIORITY)
                     .build());
-            state = State.AWAIT_CLOSE_BEFORE_OPEN;
-            return;
         }
+    }
 
-        state = State.OPEN_CHEST;
+    private void doOpenChest() {
         tickCounter = 0;
-
-        // 发送右键打开包
-        sendClientPacketAsync(new ServerboundUseItemOnPacket(
-                currentChest.x(), currentChest.y(), currentChest.z(),
-                Direction.UP,
-                Hand.MAIN_HAND,
-                0, 0, 0,
-                false, false, 0
-        ));
-
-        chestOpened = false;
         testStartTick = tickCounter;
-
+        BARITONE.rightClickBlock(currentChest.x(), currentChest.y(), currentChest.z());
         state = State.AWAIT_OPEN;
     }
 
-    private void beginExtractTest() {
+    private void doDeposit() {
         tickCounter = 0;
         testStartTick = tickCounter;
 
         var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
         if (openContainer == null || openContainer.getContainerId() == 0) {
-            // 箱子没打开，记录失败
-            recordExtractResult(false);
-            beginCloseTest();
+            recordDepositResult(false);
+            doCloseForDeposit();
             return;
         }
 
         int containerId = openContainer.getContainerId();
+        List<InventoryAction> actions = InventoryActionMacros.deposit(containerId);
 
-        // 找到箱子里第一个有物品的槽位
-        int targetSlot = -1;
-        for (int i = 0; i < openContainer.getSize() - 36; i++) {
-            if (openContainer.getItemStack(i) != Container.EMPTY_STACK) {
-                targetSlot = i;
-                break;
-            }
-        }
-
-        if (targetSlot == -1) {
-            // 箱子是空的，跳过提取测试
-            recordExtractResult(false);
-            beginCloseTest();
+        if (actions.isEmpty()) {
+            // 玩家背包没有物品可存，跳过deposit测试
+            recordDepositResult(true);
+            doCloseForDeposit();
             return;
         }
 
-        // 提取物品：ShiftClick 该槽位，然后关闭容器
-        List<InventoryAction> actions = new ArrayList<>();
-        actions.add(new ShiftClick(containerId, targetSlot, ShiftClickItemAction.LEFT_CLICK));
         actions.add(new CloseContainer(containerId));
-
         inventoryActionFuture = INVENTORY.submit(InventoryActionRequest.builder()
                 .owner(this)
                 .actionDelayTicks(currentDelay)
                 .actions(actions)
                 .priority(PRIORITY)
                 .build());
-
-        state = State.AWAIT_EXTRACT;
+        state = State.AWAIT_DEPOSIT;
     }
 
-    private void beginCloseTest() {
+    private void doCloseForDeposit() {
         tickCounter = 0;
         testStartTick = tickCounter;
 
         var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
         if (openContainer == null || openContainer.getContainerId() == 0) {
-            // 已经关闭了
-            recordCloseResult(true);
+            // 已关闭，直接进入第二轮
+            beginOpenForWithdraw();
+            return;
+        }
+
+        List<InventoryAction> actions = new ArrayList<>();
+        actions.add(new CloseContainer(openContainer.getContainerId()));
+        inventoryActionFuture = INVENTORY.submit(InventoryActionRequest.builder()
+                .owner(this)
+                .actionDelayTicks(currentDelay)
+                .actions(actions)
+                .priority(PRIORITY)
+                .build());
+        state = State.AWAIT_CLOSE_FOR_DEPOSIT;
+    }
+
+    private void doWithdraw() {
+        tickCounter = 0;
+        testStartTick = tickCounter;
+
+        var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
+        if (openContainer == null || openContainer.getContainerId() == 0) {
+            recordWithdrawResult(false);
+            doCloseForWithdraw();
+            return;
+        }
+
+        int containerId = openContainer.getContainerId();
+        List<InventoryAction> actions = InventoryActionMacros.withdraw(containerId);
+
+        if (actions.isEmpty()) {
+            // 箱子是空的，跳过withdraw测试
+            recordWithdrawResult(true);
+            doCloseForWithdraw();
+            return;
+        }
+
+        actions.add(new CloseContainer(containerId));
+        inventoryActionFuture = INVENTORY.submit(InventoryActionRequest.builder()
+                .owner(this)
+                .actionDelayTicks(currentDelay)
+                .actions(actions)
+                .priority(PRIORITY)
+                .build());
+        state = State.AWAIT_WITHDRAW;
+    }
+
+    private void doCloseForWithdraw() {
+        tickCounter = 0;
+        testStartTick = tickCounter;
+
+        var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
+        if (openContainer == null || openContainer.getContainerId() == 0) {
             finishSingleTest();
             return;
         }
@@ -256,30 +285,30 @@ public class ContainerStressTestModule extends BaseModule {
                 .actions(actions)
                 .priority(PRIORITY)
                 .build());
-
-        state = State.AWAIT_CLOSE;
+        state = State.AWAIT_CLOSE_FOR_WITHDRAW;
     }
 
     private void finishSingleTest() {
         currentRepeat++;
 
         if (currentRepeat >= config.repeatCount) {
-            // 当前 delay 测试完成，输出当前 delay 的汇总
             long avgOpen = avg(openTicksByDelay.get(currentDelay));
-            long avgExtract = avg(extractTicksByDelay.get(currentDelay));
+            long avgDeposit = avg(depositTicksByDelay.get(currentDelay));
+            long avgWithdraw = avg(withdrawTicksByDelay.get(currentDelay));
             int[] openSuccess = openSuccessByDelay.get(currentDelay);
-            int[] extractSuccess = extractSuccessByDelay.get(currentDelay);
-            info("[delay={}] 平均打开: {} tick, 成功: {}/{} ({}) | 平均提取: {} tick, 成功: {}/{} ({})",
+            int[] depositSuccess = depositSuccessByDelay.get(currentDelay);
+            int[] withdrawSuccess = withdrawSuccessByDelay.get(currentDelay);
+            info("[delay={}] 打开: {} tick ({}) | 存货: {} tick ({}) | 取货: {} tick ({})",
                     currentDelay,
-                    avgOpen, openSuccess[0], openSuccess[1], percent(openSuccess),
-                    avgExtract, extractSuccess[0], extractSuccess[1], percent(extractSuccess));
+                    avgOpen, percent(openSuccess),
+                    avgDeposit, percent(depositSuccess),
+                    avgWithdraw, percent(withdrawSuccess));
 
             currentDelayIndex++;
             startNextTest();
         } else {
-            // 继续重复测试
             info("重复 {}/{} 完成，继续...", currentRepeat, config.repeatCount);
-            beginOpenTest();
+            beginOpenForDeposit();
         }
     }
 
@@ -289,22 +318,21 @@ public class ContainerStressTestModule extends BaseModule {
         long elapsed = tickCounter - testStartTick;
         openTicksByDelay.get(currentDelay).add(elapsed);
         openSuccessByDelay.get(currentDelay)[1]++;
-        if (success) {
-            openSuccessByDelay.get(currentDelay)[0]++;
-        }
+        if (success) openSuccessByDelay.get(currentDelay)[0]++;
     }
 
-    private void recordExtractResult(boolean success) {
+    private void recordDepositResult(boolean success) {
         long elapsed = tickCounter - testStartTick;
-        extractTicksByDelay.get(currentDelay).add(elapsed);
-        extractSuccessByDelay.get(currentDelay)[1]++;
-        if (success) {
-            extractSuccessByDelay.get(currentDelay)[0]++;
-        }
+        depositTicksByDelay.get(currentDelay).add(elapsed);
+        depositSuccessByDelay.get(currentDelay)[1]++;
+        if (success) depositSuccessByDelay.get(currentDelay)[0]++;
     }
 
-    private void recordCloseResult(boolean success) {
-        // 关闭结果不单独统计，仅用于流程控制
+    private void recordWithdrawResult(boolean success) {
+        long elapsed = tickCounter - testStartTick;
+        withdrawTicksByDelay.get(currentDelay).add(elapsed);
+        withdrawSuccessByDelay.get(currentDelay)[1]++;
+        if (success) withdrawSuccessByDelay.get(currentDelay)[0]++;
     }
 
     // ==================== Tick 处理 ====================
@@ -315,43 +343,62 @@ public class ContainerStressTestModule extends BaseModule {
         tickCounter++;
 
         switch (state) {
-            case AWAIT_CLOSE_BEFORE_OPEN -> {
-                if (inventoryActionFuture.isCompleted()) {
-                    beginOpenTest();
-                } else if (tickCounter > CLOSE_TIMEOUT) {
-                    // 强制进入打开流程
-                    beginOpenTest();
+            // ---- 第一轮：存货 ----
+            case AWAIT_CLOSE_FOR_DEPOSIT_OPEN -> {
+                if (inventoryActionFuture.isCompleted() || tickCounter > CLOSE_TIMEOUT) {
+                    doOpenChest();
                 }
             }
             case AWAIT_OPEN -> {
                 var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
                 if (openContainer.getContainerId() != 0) {
-                    chestOpened = true;
                     recordOpenResult(true);
-                    beginExtractTest();
+                    doDeposit();
                 } else if (tickCounter > OPEN_TIMEOUT) {
                     recordOpenResult(false);
-                    beginCloseTest();
+                    state = State.IDLE;
+                    currentRepeat++;
+                    if (currentRepeat < config.repeatCount) beginOpenForDeposit();
+                    else finishSingleTest();
                 }
             }
-            case AWAIT_EXTRACT -> {
+            case AWAIT_DEPOSIT -> {
                 if (inventoryActionFuture.isCompleted()) {
-                    recordExtractResult(true);
-                    finishSingleTest();
-                } else if (tickCounter > EXTRACT_TIMEOUT) {
-                    recordExtractResult(false);
-                    beginCloseTest();
+                    recordDepositResult(true);
+                    doCloseForDeposit();
+                } else if (tickCounter > ACTION_TIMEOUT) {
+                    recordDepositResult(false);
+                    doCloseForDeposit();
                 }
             }
-            case AWAIT_CLOSE -> {
+            case AWAIT_CLOSE_FOR_DEPOSIT -> {
+                if (inventoryActionFuture.isCompleted() || tickCounter > CLOSE_TIMEOUT) {
+                    // 第一轮完成，开始第二轮取货
+                    beginOpenForWithdraw();
+                }
+            }
+
+            // ---- 第二轮：取货 ----
+            case AWAIT_CLOSE_FOR_WITHDRAW_OPEN -> {
+                if (inventoryActionFuture.isCompleted() || tickCounter > CLOSE_TIMEOUT) {
+                    doOpenChest();
+                }
+            }
+            case AWAIT_WITHDRAW -> {
                 if (inventoryActionFuture.isCompleted()) {
-                    recordCloseResult(true);
-                    finishSingleTest();
-                } else if (tickCounter > CLOSE_TIMEOUT) {
-                    recordCloseResult(false);
+                    recordWithdrawResult(true);
+                    doCloseForWithdraw();
+                } else if (tickCounter > ACTION_TIMEOUT) {
+                    recordWithdrawResult(false);
+                    doCloseForWithdraw();
+                }
+            }
+            case AWAIT_CLOSE_FOR_WITHDRAW -> {
+                if (inventoryActionFuture.isCompleted() || tickCounter > CLOSE_TIMEOUT) {
                     finishSingleTest();
                 }
             }
+
             case REPORT -> {
                 printReport();
                 state = State.IDLE;
@@ -373,34 +420,49 @@ public class ContainerStressTestModule extends BaseModule {
         sb.append(String.format("测试 delay 值: %s\n\n", delayValuesStr()));
 
         sb.append("--- 各 delay 结果汇总 ---\n");
-        sb.append(String.format("%-8s | %-15s | %-12s | %-15s | %-12s\n",
-                "Delay", "Avg Open(tick)", "Open Rate", "Avg Extract(tick)", "Extract Rate"));
-        sb.append("-".repeat(70)).append("\n");
+        sb.append(String.format("%-8s | %-12s | %-10s | %-12s | %-10s | %-12s | %-10s\n",
+                "Delay", "Avg Open", "Open%", "Avg Deposit", "Depo%", "Avg Withdraw", "With%"));
+        sb.append("-".repeat(90)).append("\n");
 
         int bestDelay = -1;
         double bestScore = -1;
 
         for (int delay : config.delayValues) {
             List<Long> openTicks = openTicksByDelay.get(delay);
-            List<Long> extractTicks = extractTicksByDelay.get(delay);
+            List<Long> depositTicks = depositTicksByDelay.get(delay);
+            List<Long> withdrawTicks = withdrawTicksByDelay.get(delay);
             int[] openSuccess = openSuccessByDelay.get(delay);
-            int[] extractSuccess = extractSuccessByDelay.get(delay);
+            int[] depositSuccess = depositSuccessByDelay.get(delay);
+            int[] withdrawSuccess = withdrawSuccessByDelay.get(delay);
 
-            if (openSuccess == null || extractSuccess == null) continue;
+            if (openSuccess == null) continue;
 
             long avgOpen = avg(openTicks);
-            long avgExtract = avg(extractTicks);
-            String openRate = percent(openSuccess);
-            String extractRate = percent(extractSuccess);
+            long avgDeposit = avg(depositTicks);
+            long avgWithdraw = avg(withdrawTicks);
 
-            sb.append(String.format("%-8d | %-15d | %-12s | %-15d | %-12s\n",
-                    delay, avgOpen, openRate, avgExtract, extractRate));
+            sb.append(String.format("%-8d | %-12d | %-10s | %-12d | %-10s | %-12d | %-10s\n",
+                    delay, avgOpen, percent(openSuccess),
+                    avgDeposit, percent(depositSuccess),
+                    avgWithdraw, percent(withdrawSuccess)));
 
-            // 评分：成功率权重更高
-            double score = (openSuccess[1] > 0 ? (double) openSuccess[0] / openSuccess[1] : 0) * 50
-                    + (extractSuccess[1] > 0 ? (double) extractSuccess[0] / extractSuccess[1] : 0) * 50
-                    - avgOpen * 0.5   // 打开越快越好
-                    - avgExtract * 0.3; // 提取越快越好
+            double score = 0;
+            int weightSum = 0;
+            if (openSuccess[1] > 0) {
+                score += (double) openSuccess[0] / openSuccess[1] * 34;
+                weightSum += 34;
+            }
+            if (depositSuccess[1] > 0) {
+                score += (double) depositSuccess[0] / depositSuccess[1] * 33;
+                weightSum += 33;
+            }
+            if (withdrawSuccess[1] > 0) {
+                score += (double) withdrawSuccess[0] / withdrawSuccess[1] * 33;
+                weightSum += 33;
+            }
+            if (weightSum > 0) score = score / weightSum * 100;
+            score -= avgOpen * 0.3 + avgDeposit * 0.3 + avgWithdraw * 0.3;
+
             if (score > bestScore) {
                 bestScore = score;
                 bestDelay = delay;
@@ -411,38 +473,6 @@ public class ContainerStressTestModule extends BaseModule {
         if (bestDelay >= 0) {
             sb.append(String.format("推荐 actionDelayTicks: %d (综合评分最高)\n", bestDelay));
         }
-
-        // 打开延迟分析
-        long minOpen = Long.MAX_VALUE, maxOpen = 0;
-        for (int delay : config.delayValues) {
-            List<Long> ticks = openTicksByDelay.get(delay);
-            if (ticks != null) {
-                for (long t : ticks) {
-                    minOpen = Math.min(minOpen, t);
-                    maxOpen = Math.max(maxOpen, t);
-                }
-            }
-        }
-        if (minOpen < Long.MAX_VALUE) {
-            sb.append(String.format("打开延迟范围: %d ~ %d tick\n", minOpen, maxOpen));
-        }
-
-        // 提取延迟分析
-        long minExtract = Long.MAX_VALUE, maxExtract = 0;
-        for (int delay : config.delayValues) {
-            List<Long> ticks = extractTicksByDelay.get(delay);
-            if (ticks != null) {
-                for (long t : ticks) {
-                    minExtract = Math.min(minExtract, t);
-                    maxExtract = Math.max(maxExtract, t);
-                }
-            }
-        }
-        if (minExtract < Long.MAX_VALUE) {
-            sb.append(String.format("提取延迟范围: %d ~ %d tick\n", minExtract, maxExtract));
-        }
-
-        sb.append("======================================\n");
 
         String report = sb.toString();
         info("{}", report);
@@ -458,7 +488,7 @@ public class ContainerStressTestModule extends BaseModule {
     }
 
     private String percent(int[] success) {
-        if (success[1] == 0) return "N/A";
+        if (success == null || success[1] == 0) return "N/A";
         return String.format("%.0f%%", (double) success[0] / success[1] * 100);
     }
 
@@ -476,14 +506,18 @@ public class ContainerStressTestModule extends BaseModule {
 
     public enum State {
         IDLE,
-        AWAIT_CLOSE_BEFORE_OPEN,
-        OPEN_CHEST,
-        AWAIT_OPEN,
-        EXTRACT_ITEM,
-        AWAIT_EXTRACT,
-        CLOSE_CHEST,
-        AWAIT_CLOSE,
-        NEXT_TEST,
+
+        // 第一轮：存货
+        AWAIT_CLOSE_FOR_DEPOSIT_OPEN,  // 关闭容器后打开（存货准备）
+        AWAIT_OPEN,                     // 等待箱子打开
+        AWAIT_DEPOSIT,                  // 等待存货完成
+        AWAIT_CLOSE_FOR_DEPOSIT,        // 存货后关闭
+
+        // 第二轮：取货
+        AWAIT_CLOSE_FOR_WITHDRAW_OPEN,  // 关闭容器后打开（取货准备）
+        AWAIT_WITHDRAW,                 // 等待取货完成
+        AWAIT_CLOSE_FOR_WITHDRAW,       // 取货后关闭
+
         REPORT
     }
 }

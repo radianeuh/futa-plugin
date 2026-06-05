@@ -26,7 +26,7 @@ public class ContainerStressTestCommand extends Command {
                 .description("""
                         容器压力测试工具
 
-                        测试打开箱子、提取物品的 tick 延迟和成功率
+                        测试打开箱子、存货(deposit)、取货(withdraw)的 tick 延迟和成功率
                         """)
                 .usageLines(
                         "on/off",

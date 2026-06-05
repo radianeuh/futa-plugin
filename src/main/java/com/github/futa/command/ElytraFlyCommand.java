@@ -9,14 +9,11 @@ import com.zenith.command.api.CommandCategory;
 import com.zenith.command.api.CommandContext;
 import com.zenith.command.api.CommandUsage;
 import com.zenith.discord.Embed;
-import com.zenith.feature.player.InputRequest;
-import com.zenith.feature.player.RotationHelper;
 
-import static com.mojang.brigadier.arguments.DoubleArgumentType.getDouble;
 import static com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg;
+import static com.mojang.brigadier.arguments.DoubleArgumentType.getDouble;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
-import static com.zenith.Globals.INPUTS;
 import static com.zenith.Globals.MODULE;
 import static com.zenith.command.brigadier.ToggleArgumentType.getToggle;
 import static com.zenith.command.brigadier.ToggleArgumentType.toggle;
@@ -45,6 +42,8 @@ public class ElytraFlyCommand extends Command {
                         "gap <blocks>",
                         "debugPeriod <seconds>",
                         "goto <x> <z>",
+                        "gotoClear",
+                        "info",
                         "disconnect on/off",
                         "disconnectDistance <blocks>",
                         "lowY <height>"
@@ -119,16 +118,22 @@ public class ElytraFlyCommand extends Command {
                     double z = getDouble(c, "z");
                     config.targetX = x;
                     config.targetZ = z;
-                    var rotation = RotationHelper.rotationTo(x, 0, z);
-
-                    ElytraFlyModule.nextYaw = rotation.getX();
 
                     c.getSource().getEmbed()
                             .title("正在飞向坐标 (" + x + ", " + z + ")")
-                            .description("Yaw 已设置为 " + String.format("%.2f", rotation.getX()) + "°")
+                            .description("ElytraFly 会持续朝向此坐标飞行")
                             .primaryColor();
                     return OK;
                 }))))
+                .then(literal("gotoClear").executes(c -> {
+                    config.targetX = 0;
+                    config.targetZ = 0;
+                    c.getSource().getEmbed()
+                            .title("目标坐标已清除")
+                            .description("ElytraFly 将不再朝向特定坐标飞行")
+                            .primaryColor();
+                    return OK;
+                }))
                 .then(literal("disconnect").then(argument("toggle", toggle()).executes(c -> {
                     config.disconnectOnReach = getToggle(c, "toggle");
                     c.getSource().getEmbed()
@@ -156,7 +161,40 @@ public class ElytraFlyCommand extends Command {
                             .description(desc)
                             .primaryColor();
                     return OK;
-                })));
+                })))
+                .then(literal("info").executes(c -> {
+                    var player = com.zenith.Globals.CACHE.getPlayerCache().getThePlayer();
+                    if (player == null) {
+                        c.getSource().getEmbed()
+                                .title("错误")
+                                .description("玩家未连接")
+                                .errorColor();
+                        return OK;
+                    }
+
+                    double playerX = player.getX();
+                    double playerZ = player.getZ();
+                    double targetX = config.targetX;
+                    double targetZ = config.targetZ;
+
+                    // 计算距离 (XZ平面)
+                    double dx = playerX - targetX;
+                    double dz = playerZ - targetZ;
+                    double distance = Math.sqrt(dx * dx + dz * dz);
+
+                    // 计算预计到达时间
+                    double seconds = distance / 24.2;
+                    double hours = seconds / 3600;
+
+                    c.getSource().getEmbed()
+                            .title("ElytraFly 状态信息")
+                            .addField("玩家坐标", String.format("(%.1f, %.1f)", playerX, playerZ))
+                            .addField("目标坐标", String.format("(%.1f, %.1f)", targetX, targetZ))
+                            .addField("距离", String.format("%.1f 格", distance))
+                            .addField("预计到达时间", String.format("%.2f 小时", hours))
+                            .primaryColor();
+                    return OK;
+                }));
     }
 
     @Override

@@ -27,7 +27,7 @@ import static com.zenith.Globals.CACHE;
  * @see com.zenith.feature.pathfinder.util.WorldScanner
  */
 public class BaseFinder extends BaseModule {
-    private final BaseFinderConfig config;
+    private final BaseFinderConfig config = PLUGIN_CONFIG.baseFinder;
     private final Set<String> detectedChunks = ConcurrentHashMap.newKeySet();
     private int tickCounter = 0;
     private int entityScanTicks = 0;
@@ -39,7 +39,6 @@ public class BaseFinder extends BaseModule {
     private BlockOptionalMetaLookup customBlockFilter;
 
     public BaseFinder() {
-        this.config = PLUGIN_CONFIG.baseFinder;
         initFilters();
     }
 

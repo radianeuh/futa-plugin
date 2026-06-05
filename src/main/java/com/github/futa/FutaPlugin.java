@@ -99,6 +99,7 @@ public class FutaPlugin implements ZenithProxyPlugin {
         pluginAPI.registerCommand(new SearchAreaCommand());
         pluginAPI.registerCommand(new ContainerStressTestCommand());
         pluginAPI.registerCommand(new AutoBrewerCommand());
+        pluginAPI.registerCommand(new BaseFinderCommand());
 
         log.info("futa plugin loaded.");
     }

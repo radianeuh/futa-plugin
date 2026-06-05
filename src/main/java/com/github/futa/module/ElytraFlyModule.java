@@ -9,6 +9,7 @@ import com.zenith.cache.data.entity.EntityPlayer;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.player.Bot;
 import com.zenith.feature.player.InputRequest;
+import com.zenith.feature.player.RotationHelper;
 import com.zenith.module.api.Module;
 import com.zenith.module.impl.AutoArmor;
 import com.zenith.util.ItemUtil;
@@ -45,8 +46,13 @@ public class ElytraFlyModule extends Module {
     private double lastY = 0;
     int tick = 0;
     private static final int ROTATION_PRIORITY = 10000;
+    private static final float UNSET_YAW = 10000;
 
-    public static float nextYaw = 10000;
+    /**
+     * 外部模块（如 SearchAreaModule）可通过设置此字段来覆盖下一 tick 的 yaw。
+     * 设置后会被 handlePitchControl 消费并重置为 UNSET。
+     */
+    public static float nextYaw = UNSET_YAW;
 
     @Override
     public boolean enabledSetting() {
@@ -80,6 +86,9 @@ public class ElytraFlyModule extends Module {
         pitchingDown = true;
         goingUp = true;
         lastY = player.getY();
+        // 重置 goto 目标，防止跨会话残留导致转圈
+        config.targetX = 0;
+        config.targetZ = 0;
 
         info("ElytraFly 开始 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
     }
@@ -99,6 +108,9 @@ public class ElytraFlyModule extends Module {
         pitchingDown = true;
         goingUp = true;
         lastY = player.getY();
+        // 重置 goto 目标，防止跨会话残留导致转圈
+        config.targetX = 0;
+        config.targetZ = 0;
         info("ElytraFly 已启用 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
 
     }
@@ -201,19 +213,25 @@ public class ElytraFlyModule extends Module {
             if (pitch > 40) pitch = 40;
         }
 
-        // 设置玩家 pitch
-        float playerYaw = player.getYaw();
-        if (nextYaw < 1000) {
+        // 计算 yaw：优先级 1) nextYaw 覆盖（SearchAreaModule等外部使用） 2) 持续朝向目标坐标 3) 玩家当前yaw
+        float playerYaw;
+        if (nextYaw != UNSET_YAW) {
+            // 外部模块设置了一次性 yaw 覆盖
             playerYaw = nextYaw;
+            nextYaw = UNSET_YAW;
+        } else if (config.targetX != 0 || config.targetZ != 0) {
+            // goto 设置了目标坐标，每 tick 持续计算朝向
+            playerYaw = RotationHelper.yawToXZ(config.targetX, config.targetZ);
+        } else {
+            playerYaw = player.getYaw();
         }
 
         INPUTS.submit(InputRequest.builder()
-                        .owner(this)
-                        .yaw(playerYaw)
-                        .pitch(pitch)
-                        .priority(ROTATION_PRIORITY)
-                        .build())
-                .addInputExecutedListener(e -> nextYaw = 10000);
+                .owner(this)
+                .yaw(playerYaw)
+                .pitch(pitch)
+                .priority(ROTATION_PRIORITY)
+                .build());
     }
 
     /**

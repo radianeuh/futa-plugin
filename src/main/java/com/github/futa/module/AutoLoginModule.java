@@ -326,7 +326,7 @@ public class AutoLoginModule extends Module {
             // 重启后重置时间，避免重复重启
             lastOnlineTime = System.currentTimeMillis();
         } else {
-            info("当前离线{}分钟，距离自动重启还有{}分钟", offlineMinutes, 30 - offlineMinutes);
+            info("当前离线{}分钟，距离自动重启还有{}分钟", offlineMinutes, PLUGIN_CONFIG.autoLoginTimeout - offlineMinutes);
         }
     }
 

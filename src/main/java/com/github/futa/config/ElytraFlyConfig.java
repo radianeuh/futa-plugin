@@ -53,6 +53,12 @@ public class ElytraFlyConfig {
     public double targetZ = 0;
 
     /**
+     * 是否有有效的 goto 目标坐标。
+     * 用于区分"未设置目标"和"目标在原点(0,0)"。
+     */
+    public boolean hasGotoTarget = false;
+
+    /**
      * 是否启用到达坐标附近自动下线功能。
      */
     public boolean disconnectOnReach = false;
