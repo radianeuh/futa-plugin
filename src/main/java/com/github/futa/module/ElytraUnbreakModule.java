@@ -3,6 +3,7 @@ package com.github.futa.module;
 import com.github.futa.FutaPlugin;
 import com.github.futa.config.ElytraUnbreakConfig;
 import com.github.rfresh2.EventConsumer;
+import com.zenith.Globals;
 import com.zenith.cache.data.inventory.Container;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.inventory.InventoryActionRequest;
@@ -138,6 +139,16 @@ public class ElytraUnbreakModule extends Module {
         }
 
         tickCounter = 0;
+    }
+
+    public void takeoff() {
+        if (!isWearingElytra()) {
+            equipElytra();
+        }
+
+        if (canContinueGliding()) {
+            startFallFlying();
+        }
     }
 
     /**
@@ -341,7 +352,9 @@ public class ElytraUnbreakModule extends Module {
         }
 
         // 液体检查
-        if (BOT.isTouchingWater() || BOT.isTouchingLava()) {
+        if (BOT.isTouchingWater()
+                || Globals.BOT.isSwimming()
+                || BOT.isTouchingLava()) {
             return false;
         }
 

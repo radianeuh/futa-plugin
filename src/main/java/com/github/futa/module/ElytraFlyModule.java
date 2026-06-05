@@ -46,6 +46,8 @@ public class ElytraFlyModule extends Module {
     int tick = 0;
     private static final int ROTATION_PRIORITY = 10000;
 
+    public static float nextYaw = 10000;
+
     @Override
     public boolean enabledSetting() {
         return config.enabled;
@@ -121,11 +123,13 @@ public class ElytraFlyModule extends Module {
             resetBounds(player);
         }
 
-        if (config.debug) {
-            if (!Globals.BOT.isOnGround() && !Globals.BOT.isFallFlying() && !Globals.BOT.isTouchingWater()) {
-                info("BOT 在空中停止滑翔状态了" + tick);
+        if (!Globals.BOT.isOnGround() && !Globals.BOT.isFallFlying() && !Globals.BOT.isTouchingWater()) {
+            if (config.debug) {
+                info("BOT 在空中意外停止滑翔状态了" + tick);
             }
+            MODULE.get(ElytraUnbreakModule.class).takeoff();
         }
+
         tick++;
         if (config.debug && tick % (config.debugLogPeriod * 20) == 0) {
             info("===========================");
@@ -167,7 +171,7 @@ public class ElytraFlyModule extends Module {
         }
 
         // ========== 检查是否低于指定Y坐标 ==========
-        if (config.disconnectOnLowY > 0 && player.getY() < config.disconnectOnLowY) {
+        if (config.disconnectOnLowY > 0 && player.getY() < config.disconnectOnLowY && player.getY() != 0) {
             info("玩家 Y=" + String.format("%.1f", player.getY()) + " 低于 " + config.disconnectOnLowY + "，自动下线");
             Proxy.getInstance().disconnect();
         }
@@ -199,12 +203,17 @@ public class ElytraFlyModule extends Module {
 
         // 设置玩家 pitch
         float playerYaw = player.getYaw();
+        if (nextYaw < 1000) {
+            playerYaw = nextYaw;
+        }
+
         INPUTS.submit(InputRequest.builder()
-                .owner(this)
-                .yaw(playerYaw)
-                .pitch(pitch)
-                .priority(ROTATION_PRIORITY)
-                .build());
+                        .owner(this)
+                        .yaw(playerYaw)
+                        .pitch(pitch)
+                        .priority(ROTATION_PRIORITY)
+                        .build())
+                .addInputExecutedListener(e -> nextYaw = 10000);
     }
 
     /**

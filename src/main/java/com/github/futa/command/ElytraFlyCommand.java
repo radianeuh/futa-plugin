@@ -120,11 +120,9 @@ public class ElytraFlyCommand extends Command {
                     config.targetX = x;
                     config.targetZ = z;
                     var rotation = RotationHelper.rotationTo(x, 0, z);
-                    INPUTS.submit(InputRequest.builder()
-                            .owner(this)
-                            .yaw(rotation.getX())
-                            .priority(10000)
-                            .build());
+
+                    ElytraFlyModule.nextYaw = rotation.getX();
+
                     c.getSource().getEmbed()
                             .title("正在飞向坐标 (" + x + ", " + z + ")")
                             .description("Yaw 已设置为 " + String.format("%.2f", rotation.getX()) + "°")

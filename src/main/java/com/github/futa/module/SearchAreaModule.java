@@ -9,7 +9,6 @@ import com.zenith.Proxy;
 import com.zenith.cache.data.entity.EntityPlayer;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.player.Bot;
-import com.zenith.feature.player.InputRequest;
 import com.zenith.feature.player.RotationHelper;
 import com.zenith.module.api.Module;
 
@@ -20,7 +19,6 @@ import java.util.List;
 
 import static com.github.rfresh2.EventConsumer.of;
 import static com.zenith.Globals.CACHE;
-import static com.zenith.Globals.INPUTS;
 
 /**
  * SearchAreaModule 模块 - 自动区块加载/搜索模块
@@ -35,7 +33,6 @@ public class SearchAreaModule extends Module {
 
     SearchAreaConfig config = FutaPlugin.PLUGIN_CONFIG.searchArea;
 
-    private static final int ROTATION_PRIORITY = 10000;
     private static final long AUTO_SAVE_INTERVAL_MS = 10 * 60 * 1000; // 10 分钟
     private long lastSaveTime = 0;
 
@@ -147,11 +144,7 @@ public class SearchAreaModule extends Module {
                 } else {
                     // 朝起始点转向
                     var rotation = RotationHelper.rotationTo(data.currPos[0], 0, data.currPos[2]);
-                    INPUTS.submit(InputRequest.builder()
-                            .owner(module)
-                            .yaw(rotation.getX())
-                            .priority(ROTATION_PRIORITY)
-                            .build());
+                    ElytraFlyModule.nextYaw = rotation.getX();
                 }
                 return;
             }
@@ -205,11 +198,7 @@ public class SearchAreaModule extends Module {
             } else {
                 // 继续水平移动
                 var rotation = RotationHelper.rotationTo(targetX, 0, (int) player.getZ());
-                INPUTS.submit(InputRequest.builder()
-                        .owner(module)
-                        .yaw(rotation.getX())
-                        .priority(ROTATION_PRIORITY)
-                        .build());
+                ElytraFlyModule.nextYaw = rotation.getX();
             }
         }
 
@@ -222,11 +211,8 @@ public class SearchAreaModule extends Module {
             } else {
                 // 继续垂直移动
                 var rotation = RotationHelper.rotationTo((int) player.getX(), 0, data.currPos[2]);
-                INPUTS.submit(InputRequest.builder()
-                        .owner(module)
-                        .yaw(rotation.getX())
-                        .priority(ROTATION_PRIORITY)
-                        .build());
+                ElytraFlyModule.nextYaw = rotation.getX();
+
             }
         }
 
@@ -309,11 +295,8 @@ public class SearchAreaModule extends Module {
             } else {
                 // 继续水平移动
                 var rotation = RotationHelper.rotationTo(targetX, 0, (int) player.getZ());
-                INPUTS.submit(InputRequest.builder()
-                        .owner(module)
-                        .yaw(rotation.getX())
-                        .priority(ROTATION_PRIORITY)
-                        .build());
+                ElytraFlyModule.nextYaw = rotation.getX();
+
             }
         }
 
@@ -346,11 +329,8 @@ public class SearchAreaModule extends Module {
             } else {
                 // 继续垂直移动
                 var rotation = RotationHelper.rotationTo((int) player.getX(), 0, targetZ);
-                INPUTS.submit(InputRequest.builder()
-                        .owner(module)
-                        .yaw(rotation.getX())
-                        .priority(ROTATION_PRIORITY)
-                        .build());
+                ElytraFlyModule.nextYaw = rotation.getX();
+
             }
         }
 
@@ -487,7 +467,7 @@ public class SearchAreaModule extends Module {
     /**
      * 创建新的路径数据
      */
-    private void createNewPathData() {
+    public void createNewPathData() {
         var player = CACHE.getPlayerCache().getThePlayer();
 
         if (config.mode.equals("Rectangle")) {

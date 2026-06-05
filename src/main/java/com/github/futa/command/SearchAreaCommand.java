@@ -81,6 +81,9 @@ public class SearchAreaCommand extends Command {
                         return OK;
                     }
                     config.mode = mode;
+                    if (mode.equals("Spiral")) {
+                        MODULE.get(SearchAreaModule.class).createNewPathData();
+                    }
                     c.getSource().getEmbed()
                             .title("搜索模式已设置为 " + mode)
                             .primaryColor();
