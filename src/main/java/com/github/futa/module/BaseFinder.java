@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 
 import static com.zenith.Globals.CACHE;
 
@@ -30,7 +30,15 @@ import static com.zenith.Globals.CACHE;
  */
 public class BaseFinder extends BaseModule {
     private final BaseFinderConfig config = PLUGIN_CONFIG.baseFinder;
-    private final Set<String> scannedChunks = ConcurrentHashMap.newKeySet();
+    // 使用 LRU 缓存，只保留最近扫描的 1000 个区块
+    private final Set<String> scannedChunks = Collections.newSetFromMap(
+            new LinkedHashMap<>(1000, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                    return size() > 1000;
+                }
+            }
+    );
     private final Queue<String> chunksToScan = new LinkedList<>();
     private int tickCounter = 0;
     private int entityScanTicks = 0;
@@ -225,11 +233,17 @@ public class BaseFinder extends BaseModule {
         scannedChunks.add(chunkKey);
 
         // 第一步：使用合并过滤器快速扫描，找到一个就停止
+        long startTime = System.nanoTime();
         List<BlockPos> quickScan = WorldScanner.scanChunk(combinedFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
+        long elapsed = (System.nanoTime() - startTime) / 1_000_000;
+
         if (quickScan.isEmpty()) {
             // 没有找到任何方块，跳过详细扫描
+            info("Quick scan chunk [{}, {}] took {}ms, no match", chunkX, chunkZ, elapsed);
             return;
         }
+
+        info("Quick scan chunk [{}, {}] took {}ms, found match", chunkX, chunkZ, elapsed);
 
         // 第二步：细分扫描，确定具体是哪种方块
         if (config.portalFinder) {
@@ -369,38 +383,45 @@ public class BaseFinder extends BaseModule {
 
     // 数据持久化
     private void saveData() {
-        try {
-            Path dir = Path.of("basefinder");
-            Files.createDirectories(dir);
-            Path file = dir.resolve("detected_locations.json");
+        // 复制当前数据，避免在异步执行时被修改
+        List<String> locationsToSave = new ArrayList<>(detectedLocations);
 
-            Map<String, Object> data = new HashMap<>();
-            data.put("locations", detectedLocations);
+        CompletableFuture.runAsync(() -> {
+            try {
+                Path dir = Path.of("basefinder");
+                Files.createDirectories(dir);
+                Path file = dir.resolve("detected_locations.json");
 
-            Gson gson = new Gson();
-            String json = gson.toJson(data);
-            Files.writeString(file, json);
-        } catch (IOException e) {
-            error("Failed to save data: " + e.getMessage());
-        }
+                Map<String, Object> data = new HashMap<>();
+                data.put("locations", locationsToSave);
+
+                Gson gson = new Gson();
+                String json = gson.toJson(data);
+                Files.writeString(file, json);
+            } catch (IOException e) {
+                error("Failed to save data: " + e.getMessage());
+            }
+        });
     }
 
     private void loadData() {
-        try {
-            Path file = Path.of("basefinder/detected_locations.json");
-            if (!Files.exists(file)) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                Path file = Path.of("basefinder/detected_locations.json");
+                if (!Files.exists(file)) return;
 
-            String json = Files.readString(file);
-            Gson gson = new Gson();
-            java.lang.reflect.Type type = new TypeToken<Map<String, List<String>>>() {
-            }.getType();
-            Map<String, List<String>> data = gson.fromJson(json, type);
+                String json = Files.readString(file);
+                Gson gson = new Gson();
+                java.lang.reflect.Type type = new TypeToken<Map<String, List<String>>>() {
+                }.getType();
+                Map<String, List<String>> data = gson.fromJson(json, type);
 
-            if (data != null && data.containsKey("locations")) {
-                detectedLocations.addAll(data.get("locations"));
+                if (data != null && data.containsKey("locations")) {
+                    detectedLocations.addAll(data.get("locations"));
+                }
+            } catch (IOException e) {
+                error("Failed to load data: " + e.getMessage());
             }
-        } catch (IOException e) {
-            error("Failed to load data: " + e.getMessage());
-        }
+        });
     }
 }
