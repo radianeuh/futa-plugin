@@ -945,6 +945,26 @@ public class AutoEnchantModule extends BaseModule {
     private class AnvilHelper {
 
         /**
+         * 检查铁砧 input 槽 0 是否已有装备
+         */
+        public boolean isEquipmentInAnvilSlot0(Container openContainer) {
+            var item = openContainer.getItemStack(0);
+            return item != null && item != Container.EMPTY_STACK
+                    && DIAMOND_ITEM_MAP.containsKey(item.getId());
+        }
+
+        /**
+         * 获取铁砧 input 槽 0 的物品
+         */
+        public ItemStack getAnvilSlot0Item(Container openContainer) {
+            var item = openContainer.getItemStack(0);
+            if (item != null && item != Container.EMPTY_STACK) {
+                return item;
+            }
+            return null;
+        }
+
+        /**
          * 从箱子中寻找待附魔的装备
          */
         public List<InventoryAction> findEquipmentToEnchant(Container openContainer) {
@@ -1067,9 +1087,17 @@ public class AutoEnchantModule extends BaseModule {
                 return;
             }
 
-            ItemStack[] equipmentHolder = new ItemStack[]{equipment};
-            List<InventoryAction> equipActions = depositEquipment(openContainer, equipmentHolder);
-            if (equipActions.isEmpty()) return;
+            // 检查铁砧 input 槽 0 是否已有装备
+            boolean alreadyInAnvil = anvilHelper.isEquipmentInAnvilSlot0(openContainer);
+            List<InventoryAction> equipActions;
+            if (alreadyInAnvil) {
+                info("装备已在铁砧 input 槽 0，跳过 deposit");
+                equipActions = Lists.newArrayList(); // 空列表，跳过 deposit
+            } else {
+                ItemStack[] equipmentHolder = new ItemStack[]{equipment};
+                equipActions = depositEquipment(openContainer, equipmentHolder);
+                if (equipActions.isEmpty()) return;
+            }
 
             String nextNeededEnchantment = resultChecker.getNextNeededEnchantment();
             int costForItem = EnchantmentUtil.calculateAnvilCostForItem(equipment, nextNeededEnchantment) + 1;
@@ -1092,8 +1120,10 @@ public class AutoEnchantModule extends BaseModule {
                     }, 1
             );
 
-            if (!equipActions.isEmpty() && !bookActions.isEmpty()) {
-                actions.addAll(equipActions);
+            if (!bookActions.isEmpty()) {
+                if (!equipActions.isEmpty()) {
+                    actions.addAll(equipActions);
+                }
                 actions.addAll(bookActions);
                 actions.add(new ShiftClick(openContainer.getContainerId(), 2, ShiftClickItemAction.LEFT_CLICK));
             }
@@ -1173,11 +1203,20 @@ public class AutoEnchantModule extends BaseModule {
         private void handleFirstBook(Container openContainer, List<InventoryAction> actions) {
             info("附魔第一本书");
 
-            ItemStack[] swordHolder = new ItemStack[]{null};
-            List<InventoryAction> equipActions = anvilHelper.depositEquipment(openContainer, swordHolder);
-            if (equipActions.isEmpty()) return;
+            boolean alreadyInAnvil = anvilHelper.isEquipmentInAnvilSlot0(openContainer);
+            List<InventoryAction> equipActions;
+            if (alreadyInAnvil) {
+                info("装备已在铁砧 input 槽 0，跳过 deposit");
+                equipActions = Lists.newArrayList();
+                ItemStack[] swordHolder = new ItemStack[]{anvilHelper.getAnvilSlot0Item(openContainer)};
+                currentItemToEnchant = swordHolder[0];
+            } else {
+                ItemStack[] swordHolder = new ItemStack[]{null};
+                equipActions = anvilHelper.depositEquipment(openContainer, swordHolder);
+                if (equipActions.isEmpty()) return;
+                currentItemToEnchant = swordHolder[0];
+            }
 
-            currentItemToEnchant = swordHolder[0];
             anvilHelper.addRenameAction(actions, openContainer, currentItemToEnchant);
 
             AtomicReference<ItemStack> book = new AtomicReference<>();
@@ -1199,8 +1238,10 @@ public class AutoEnchantModule extends BaseModule {
             int costForItem = EnchantmentUtil.calculateAnvilCostForItem(currentItemToEnchant, book.get()) + 1;
             if (anvilHelper.checkAndSetXp(costForItem)) return;
 
-            if (!equipActions.isEmpty() && !bookActions.isEmpty()) {
-                actions.addAll(equipActions);
+            if (!bookActions.isEmpty()) {
+                if (!equipActions.isEmpty()) {
+                    actions.addAll(equipActions);
+                }
                 actions.addAll(bookActions);
                 actions.add(new ShiftClick(openContainer.getContainerId(), 2, ShiftClickItemAction.LEFT_CLICK));
             }
@@ -1267,11 +1308,20 @@ public class AutoEnchantModule extends BaseModule {
         private void handleEnchantMergedBook(Container openContainer, List<InventoryAction> actions, int bookConfigIndex) {
             info("附魔合并后的书（索引" + bookConfigIndex + "）");
 
-            ItemStack[] swordHolder = new ItemStack[]{null};
-            List<InventoryAction> equipActions = anvilHelper.depositEquipment(openContainer, swordHolder);
-            if (equipActions.isEmpty()) return;
+            boolean alreadyInAnvil = anvilHelper.isEquipmentInAnvilSlot0(openContainer);
+            List<InventoryAction> equipActions;
+            if (alreadyInAnvil) {
+                info("装备已在铁砧 input 槽 0，跳过 deposit");
+                equipActions = Lists.newArrayList();
+                ItemStack[] swordHolder = new ItemStack[]{anvilHelper.getAnvilSlot0Item(openContainer)};
+                currentItemToEnchant = swordHolder[0];
+            } else {
+                ItemStack[] swordHolder = new ItemStack[]{null};
+                equipActions = anvilHelper.depositEquipment(openContainer, swordHolder);
+                if (equipActions.isEmpty()) return;
+                currentItemToEnchant = swordHolder[0];
+            }
 
-            currentItemToEnchant = swordHolder[0];
             anvilHelper.addRenameAction(actions, openContainer, currentItemToEnchant);
 
             AtomicReference<ItemStack> book = new AtomicReference<>();
@@ -1295,8 +1345,10 @@ public class AutoEnchantModule extends BaseModule {
             int costForItem = EnchantmentUtil.calculateAnvilCostForItem(currentItemToEnchant, book.get());
             if (anvilHelper.checkAndSetXp(costForItem)) return;
 
-            if (!equipActions.isEmpty() && !bookActions.isEmpty()) {
-                actions.addAll(equipActions);
+            if (!bookActions.isEmpty()) {
+                if (!equipActions.isEmpty()) {
+                    actions.addAll(equipActions);
+                }
                 actions.addAll(bookActions);
                 actions.add(new ShiftClick(openContainer.getContainerId(), 2, ShiftClickItemAction.LEFT_CLICK));
             }

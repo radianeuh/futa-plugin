@@ -21,4 +21,5 @@ public class FChatUtil {
         return null; // 不是私信格式
     }
 
+
 }

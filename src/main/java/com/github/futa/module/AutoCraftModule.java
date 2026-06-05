@@ -526,7 +526,6 @@ public class AutoCraftModule extends BaseModule {
                     return true; // 需要更多材料
                 }
             }
-
         }
 
         return false; // 材料足够

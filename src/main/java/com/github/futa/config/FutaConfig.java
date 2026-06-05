@@ -63,4 +63,5 @@ public class FutaConfig {
     public ElytraUnbreakConfig elytraUnbreak = new ElytraUnbreakConfig();
     public BaseFinderConfig baseFinder = new BaseFinderConfig();
     public SearchAreaConfig searchArea = new SearchAreaConfig();
+    public ContainerStressTestConfig stressTest = new ContainerStressTestConfig();
 }
