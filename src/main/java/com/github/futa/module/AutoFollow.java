@@ -162,7 +162,7 @@ public class AutoFollow extends Module {
         double x = CACHE.getPlayerCache().getThePlayer().getX();
         double y = CACHE.getPlayerCache().getThePlayer().getY();
         double z = CACHE.getPlayerCache().getThePlayer().getZ();
-        info("给玩家发坐标：" + x + ", " + y + ", " + z);
+        info("给玩家发坐标：{}, {}, {}", x, y, z);
         String name = getName(currentTarget);
         String message = "[" + DateUtil.now() + "] " + MessageGenerator.getHelpMessage(x, y, z);
 

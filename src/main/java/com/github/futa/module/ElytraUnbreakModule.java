@@ -61,7 +61,7 @@ public class ElytraUnbreakModule extends Module {
     @Override
     public void onEnable() {
         resetState();
-        info("ElytraUnbreak 已启用 - 切换周期: %d tick", config.period);
+        info("ElytraUnbreak 已启用 - 切换周期: {} tick", config.period);
     }
 
     @Override

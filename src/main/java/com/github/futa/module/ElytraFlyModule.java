@@ -89,7 +89,7 @@ public class ElytraFlyModule extends Module {
         lastY = player.getY();
         // 重置 goto 目标，防止跨会话残留导致转圈
 
-        info("ElytraFly 开始 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
+        info("ElytraFly 开始 upper:{}, lower:{}", (int) config.pitch40UpperBounds, (int) config.pitch40LowerBounds);
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ElytraFlyModule extends Module {
         goingUp = true;
         lastY = player.getY();
         // 重置 goto 目标，防止跨会话残留导致转圈
-        info("ElytraFly 已启用 upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
+        info("ElytraFly 已启用 upper:{}, lower:{}", (int) config.pitch40UpperBounds, (int) config.pitch40LowerBounds);
 
     }
 
@@ -134,7 +134,7 @@ public class ElytraFlyModule extends Module {
 
         if (!Globals.BOT.isOnGround() && !Globals.BOT.isFallFlying() && !Globals.BOT.isTouchingWater()) {
             if (config.debug) {
-                info("BOT 在空中意外停止滑翔状态了" + tick);
+                info("BOT 在空中意外停止滑翔状态了{}", tick);
             }
             MODULE.get(ElytraUnbreakModule.class).takeoff();
         }
@@ -142,12 +142,12 @@ public class ElytraFlyModule extends Module {
         tick++;
         if (config.debug && tick % (config.debugLogPeriod * 20) == 0) {
             info("===========================");
-            info("BOT loction: " + keep2Decimal(player.getX()) + " " + keep2Decimal(player.getY()) + " " + keep2Decimal(player.getZ()));
-            info("BOT Pitch: " + player.getPitch() + " Yaw: " + player.getYaw());
-            info("BOT Speed: " + getSpeed());
-            info("BOT isFallFlying: " + Globals.BOT.isFallFlying());
-            info("BOT isOnGround: " + Globals.BOT.isOnGround());
-            info("BOT isWearingElytra: " + isWearingElytra());
+            info("BOT loction: {} {} {}", keep2Decimal(player.getX()), keep2Decimal(player.getY()), keep2Decimal(player.getZ()));
+            info("BOT Pitch: {} Yaw: {}", player.getPitch(), player.getYaw());
+            info("BOT Speed: {}", getSpeed());
+            info("BOT isFallFlying: {}", Globals.BOT.isFallFlying());
+            info("BOT isOnGround: {}", Globals.BOT.isOnGround());
+            info("BOT isWearingElytra: {}", isWearingElytra());
             if (isWearingElytra()) {
                 var elytraStack = CACHE.getPlayerCache().getEquipment(EquipmentSlot.CHESTPLATE);
                 // 获取最大耐久
@@ -155,10 +155,10 @@ public class ElytraFlyModule extends Module {
 
                 // 获取剩余耐久
                 int durability = ItemUtil.getDamageUntilBreak(elytraStack);
-                info("BOT Elytra: " + durability + "/" + maxDamage);
+                info("BOT Elytra: {}/{}", durability, maxDamage);
             }
 
-            info("upper:" + (int) config.pitch40UpperBounds + ", lower:" + (int) config.pitch40LowerBounds);
+            info("upper:{}, lower:{}", (int) config.pitch40UpperBounds, (int) config.pitch40LowerBounds);
             info("===========================");
         }
 
@@ -181,7 +181,7 @@ public class ElytraFlyModule extends Module {
 
         // ========== 检查是否低于指定Y坐标 ==========
         if (config.disconnectOnLowY > 0 && player.getY() < config.disconnectOnLowY && player.getY() != 0) {
-            info("玩家 Y=" + String.format("%.1f", player.getY()) + " 低于 " + config.disconnectOnLowY + "，自动下线");
+            info("玩家 Y={} 低于 {}，自动下线", String.format("%.1f", player.getY()), config.disconnectOnLowY);
             Proxy.getInstance().disconnect();
         }
 
