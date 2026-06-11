@@ -40,6 +40,7 @@ public class ContainerStressTestModule extends BaseModule {
 
     private State state = State.IDLE;
     private int tickCounter = 0;
+    private int timeCounter = 0;
 
     // 当前测试进度
     private int currentChestIndex = 0;
@@ -47,6 +48,7 @@ public class ContainerStressTestModule extends BaseModule {
     private int currentRepeat = 0;
     private int currentDelay = 0;
     private BlockPos currentChest = BlockPos.ZERO;
+    private boolean withdrawRound = false; // false=存货轮, true=取货轮
 
     // 操作 futures
     private RequestFuture inventoryActionFuture = RequestFuture.rejected;
@@ -151,6 +153,7 @@ public class ContainerStressTestModule extends BaseModule {
      * 第一轮：打开箱子，准备存货
      */
     private void beginOpenForDeposit() {
+        withdrawRound = false;
         closeIfOpen();
         state = State.AWAIT_CLOSE_FOR_DEPOSIT_OPEN;
     }
@@ -172,6 +175,9 @@ public class ContainerStressTestModule extends BaseModule {
     private void doOpenChest() {
         tickCounter = 0;
         testStartTick = tickCounter;
+        if (CACHE.getPlayerCache().isSneaking() || timeCounter % 20 == 0) {
+            CACHE.getPlayerCache().setSneaking(false);
+        }
         BARITONE.rightClickBlock(currentChest.x(), currentChest.y(), currentChest.z());
         state = State.AWAIT_OPEN;
     }
@@ -210,8 +216,9 @@ public class ContainerStressTestModule extends BaseModule {
     private void doCloseForDeposit() {
         var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
         if (openContainer == null || openContainer.getContainerId() == 0) {
-            // 已关闭，直接进入第二轮打开
-            doOpenChest();
+            // 已关闭，等待一个 tick 再打开，避免状态跳过
+            tickCounter = 0;
+            state = State.AWAIT_CLOSE_FOR_DEPOSIT;
             return;
         }
 
@@ -260,15 +267,16 @@ public class ContainerStressTestModule extends BaseModule {
     }
 
     private void doCloseForWithdraw() {
-        tickCounter = 0;
-        testStartTick = tickCounter;
-
         var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
         if (openContainer == null || openContainer.getContainerId() == 0) {
-            finishSingleTest();
+            // 已关闭，等待一个 tick 再结束，避免状态跳过
+            tickCounter = 0;
+            state = State.AWAIT_CLOSE_FOR_WITHDRAW;
             return;
         }
 
+        tickCounter = 0;
+        testStartTick = tickCounter;
         List<InventoryAction> actions = new ArrayList<>();
         actions.add(new CloseContainer(openContainer.getContainerId()));
         inventoryActionFuture = INVENTORY.submit(InventoryActionRequest.builder()
@@ -330,6 +338,7 @@ public class ContainerStressTestModule extends BaseModule {
     // ==================== Tick 处理 ====================
 
     private void onTick(ClientBotTick event) {
+        timeCounter++;
         if (state == State.IDLE || state == State.REPORT) return;
 
         tickCounter++;
@@ -345,13 +354,22 @@ public class ContainerStressTestModule extends BaseModule {
                 var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
                 if (openContainer.getContainerId() != 0) {
                     recordOpenResult(true);
-                    doDeposit();
+                    if (withdrawRound) {
+                        doWithdraw();
+                    } else {
+                        doDeposit();
+                    }
                 } else if (tickCounter > OPEN_TIMEOUT) {
                     recordOpenResult(false);
-                    // 打开失败，deposit 和 withdraw 都跳过，直接进入第二轮
+                    // 打开失败，deposit 和 withdraw 都跳过，直接进入下一轮
                     recordDepositResult(true);
                     recordWithdrawResult(true);
-                    doOpenChest();
+                    if (withdrawRound) {
+                        finishSingleTest();
+                    } else {
+                        withdrawRound = true;
+                        doOpenChest();
+                    }
                 }
             }
             case AWAIT_DEPOSIT -> {
@@ -367,6 +385,7 @@ public class ContainerStressTestModule extends BaseModule {
                 if (inventoryActionFuture.isCompleted() || tickCounter > CLOSE_TIMEOUT) {
                     // 第一轮完成，直接打开箱子进入第二轮取货
                     info("[delay={}] 存货完成，背包剩余空位: {}/36", currentDelay, countEmptyPlayerSlots());
+                    withdrawRound = true;
                     doOpenChest();
                 }
             }
@@ -394,7 +413,8 @@ public class ContainerStressTestModule extends BaseModule {
                 config.enabled = false;
                 info("压力测试已完成并自动关闭");
             }
-            default -> {}
+            default -> {
+            }
         }
     }
 
