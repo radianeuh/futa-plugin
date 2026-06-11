@@ -339,7 +339,7 @@ public class ContainerStressTestModule extends BaseModule {
 
     private void onTick(ClientBotTick event) {
         timeCounter++;
-        if (state == State.IDLE || state == State.REPORT) return;
+        if (state == State.IDLE) return;
 
         tickCounter++;
 
@@ -408,10 +408,15 @@ public class ContainerStressTestModule extends BaseModule {
             }
 
             case REPORT -> {
-                printReport();
+                try {
+                    printReport();
+                } catch (Exception e) {
+                    info("[ContainerStressTest] 报告生成失败: {}", e.getMessage());
+                }
                 state = State.IDLE;
                 config.enabled = false;
-                info("压力测试已完成并自动关闭");
+                info("[ContainerStressTest] 压力测试已完成并自动关闭");
+                return;
             }
             default -> {
             }

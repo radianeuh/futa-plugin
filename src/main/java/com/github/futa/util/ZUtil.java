@@ -2,10 +2,18 @@ package com.github.futa.util;
 
 
 import com.zenith.Globals;
+import com.zenith.feature.inventory.InventoryActionRequest;
+import com.zenith.feature.inventory.actions.CloseContainer;
+import com.zenith.feature.inventory.actions.InventoryAction;
 import com.zenith.feature.pathfinder.BlockStateInterface;
 import com.zenith.mc.block.BlockRegistry;
+import com.zenith.util.RequestFuture;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.zenith.Globals.CACHE;
+import static com.zenith.Globals.INVENTORY;
 
 public class ZUtil {
 
@@ -39,7 +47,7 @@ public class ZUtil {
     public static boolean isValidContainer(int blockStateId) {
 
         // 检查是否为箱子、桶或其他容器方块
-        return  isShulkerBox(blockStateId)||
+        return isShulkerBox(blockStateId) ||
                 (blockStateId >= BlockRegistry.CHEST.minStateId() && blockStateId <= BlockRegistry.CHEST.maxStateId()) ||
                 (blockStateId >= BlockRegistry.BARREL.minStateId() && blockStateId <= BlockRegistry.BARREL.maxStateId()) ||
                 (blockStateId >= BlockRegistry.HOPPER.minStateId() && blockStateId <= BlockRegistry.HOPPER.maxStateId()) ||
@@ -57,5 +65,20 @@ public class ZUtil {
         int blockStateId = BlockStateInterface.getId(x, y, z);
         // 检查是否是潜影盒
         return isShulkerBox(blockStateId);
+    }
+
+
+    public static RequestFuture closeIfOpen(Object owner) {
+        var openContainer = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
+        if (openContainer != null && openContainer.getContainerId() != 0) {
+            List<InventoryAction> actions = new ArrayList<>();
+            actions.add(new CloseContainer(openContainer.getContainerId()));
+            return INVENTORY.submit(InventoryActionRequest.builder()
+                    .owner(owner)
+                    .actionDelayTicks(0)
+                    .actions(actions)
+                    .build());
+        }
+        return RequestFuture.rejected;
     }
 }

@@ -18,5 +18,5 @@ public class ContainerStressTestConfig {
     /**
      * 测试的 actionDelayTicks 值列表
      */
-    public int[] delayValues = {0, 1, 2, 3, 5, 10};
+    public int[] delayValues = {0, 1, 2, 3, 5};
 }

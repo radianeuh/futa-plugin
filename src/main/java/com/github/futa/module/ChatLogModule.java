@@ -89,7 +89,7 @@ public class ChatLogModule extends BaseModule {
                 writeLog("=== Chat Log Resumed ===");
             }
 
-            info("Chat log initialized: " + logFile.getAbsolutePath());
+            info("Chat log initialized: {}", logFile.getAbsolutePath());
 
         } catch (IOException e) {
             System.err.println("Failed to initialize chat log writer: " + e.getMessage());

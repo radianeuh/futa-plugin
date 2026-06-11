@@ -391,7 +391,7 @@ public class SearchAreaModule extends BaseModule {
         goingToStart = true;
         lastSaveTime = System.currentTimeMillis();
 
-        info("SearchAreaModule 已启动，模式: " + config.mode);
+        info("SearchAreaModule 已启动，模式: {}", config.mode);
     }
 
     private void onTick(ClientBotTick event) {

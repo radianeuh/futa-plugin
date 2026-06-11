@@ -8,6 +8,8 @@ import com.zenith.command.api.CommandContext;
 import com.zenith.command.api.CommandUsage;
 import com.zenith.discord.Embed;
 
+import java.util.Set;
+
 import static com.github.futa.FutaPlugin.PLUGIN_CONFIG;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -222,7 +224,7 @@ public class BaseFinderCommand extends Command {
                 })))
                 .then(literal("info").executes(c -> {
                     BaseFinder module = MODULE.get(BaseFinder.class);
-                    java.util.List<String> locations = module.getDetectedLocations();
+                    Set<String> locations = module.getDetectedLocations();
 
                     if (locations.isEmpty()) {
                         c.getSource().getEmbed()
@@ -232,9 +234,13 @@ public class BaseFinderCommand extends Command {
                     } else {
                         StringBuilder sb = new StringBuilder();
                         sb.append("已检测到 ").append(locations.size()).append(" 个位置:\n\n");
-                        for (int i = 0; i < Math.min(locations.size(), 20); i++) {
-                            sb.append("**").append(i + 1).append("**: ").append(locations.get(i)).append("\n");
+                        int i = 0;
+                        for (String location : locations) {
+                            if (i >= 20) break;
+                            sb.append("**").append(i + 1).append("**: ").append(location).append("\n");
+                            i++;
                         }
+
                         if (locations.size() > 20) {
                             sb.append("\n... 还有 ").append(locations.size() - 20).append(" 条记录");
                         }

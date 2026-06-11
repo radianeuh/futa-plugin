@@ -65,4 +65,5 @@ public class FutaConfig {
     public SearchAreaConfig searchArea = new SearchAreaConfig();
     public ContainerStressTestConfig stressTest = new ContainerStressTestConfig();
     public AutoBrewerConfig autoBrewer = new AutoBrewerConfig();
+    public HoverConfig hover = new HoverConfig();
 }

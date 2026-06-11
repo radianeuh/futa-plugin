@@ -16,13 +16,13 @@ public class ElytraFlyConfig {
      * pitch40 下边界高度。
      * 当玩家高度低于此值时，停止俯冲并开始抬头。
      */
-    public double pitch40LowerBounds = 80;
+    public double pitch40LowerBounds = 180;
 
     /**
      * pitch40 上边界高度。
      * 当玩家高度高于此值时，停止抬头并开始俯冲。
      */
-    public double pitch40UpperBounds = 120;
+    public double pitch40UpperBounds = 220;
 
     /**
      * pitch 旋转速度（度/tick）。

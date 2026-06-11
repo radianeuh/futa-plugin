@@ -233,7 +233,7 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
         }
 
 
-        info("move to " + currentTarget.toString());
+        info("move to {}", currentTarget.toString());
 
         pathingFuture = BARITONE.pathTo(currentTarget.x(), currentTarget.y() + 1, currentTarget.z());
 
@@ -256,10 +256,10 @@ public class NetherWartFarmModule extends AbstractInventoryModule {
         }
 
         if (pathingFuture.isCompleted()) {
-            info("move done, at " + currentTarget.toString());
+            info("move done, at {}", currentTarget.toString());
             setState(State.INTERACT_WITH_BLOCK);
         } else if (interactTimer.tick(60)) {
-            info("move timeout, retry to " + currentTarget.toString());
+            info("move timeout, retry to {}", currentTarget.toString());
             setState(State.MOVE_TO_TARGET);
         } else {
 //            jump();

@@ -2,9 +2,11 @@ package com.github.futa.module;
 
 import com.github.futa.BaseModule;
 import com.github.futa.config.BaseFinderConfig;
+import com.github.futa.util.LRUCacheSet;
 import com.github.rfresh2.EventConsumer;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.zenith.cache.data.chunk.Chunk;
 import com.zenith.cache.data.entity.Entity;
 import com.zenith.event.client.ClientBotTick;
 import com.zenith.event.client.ClientConnectEvent;
@@ -15,31 +17,29 @@ import com.zenith.mc.block.Block;
 import com.zenith.mc.block.BlockPos;
 import com.zenith.mc.block.BlockRegistry;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArraySet;
 
+import static com.github.rfresh2.EventConsumer.of;
 import static com.zenith.Globals.CACHE;
+import static com.zenith.Globals.CONFIG;
 
 /**
  * @see com.zenith.feature.pathfinder.util.WorldScanner
  */
 public class BaseFinder extends BaseModule {
     private final BaseFinderConfig config = PLUGIN_CONFIG.baseFinder;
-    // 使用 LRU 缓存，只保留最近扫描的 1000 个区块
-    private final Set<String> scannedChunks = Collections.newSetFromMap(
-            new LinkedHashMap<>(1000, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
-                    return size() > 1000;
-                }
-            }
-    );
-    private final Queue<String> chunksToScan = new LinkedList<>();
+    // 使用 LRU 缓存，只保留最近扫描的
+    final LRUCacheSet<Long> scannedChunks = new LRUCacheSet<>(2000);
+
+    private final Queue<Long> chunksToScan = new LinkedList<>();
     private int tickCounter = 0;
     private int entityScanTicks = 0;
     private int spamCooldownTicks = 0;
@@ -51,11 +51,7 @@ public class BaseFinder extends BaseModule {
     private BlockOptionalMetaLookup combinedFilter;
 
     // 检测到的坐标列表（用于保存到文件）
-    private final List<String> detectedLocations = new ArrayList<>();
-
-    public BaseFinder() {
-        initFilters();
-    }
+    private final Set<String> detectedLocations = new CopyOnWriteArraySet<>();
 
     private void initFilters() {
 
@@ -125,7 +121,7 @@ public class BaseFinder extends BaseModule {
     @Override
     public List<EventConsumer<?>> registerEvents() {
         return List.of(
-                EventConsumer.of(ClientBotTick.class, this::onTick),
+                of(ClientBotTick.class, this::onTick),
                 EventConsumer.of(ClientConnectEvent.class, this::onConnect),
                 EventConsumer.of(ClientDisconnectEvent.class, this::onDisconnect)
         );
@@ -133,25 +129,29 @@ public class BaseFinder extends BaseModule {
 
     @Override
     public void onEnable() {
+        info("BaseFinder enabled,  ViewDistance: " + CONFIG.client.defaultClientRenderDistance);
+        Long2ObjectOpenHashMap<Chunk> map = CACHE.getChunkCache().getCache();
+        info("cached chunk size: " + map.size());
         if (config.loadOnStart) {
             loadData();
         }
-        info("BaseFinder enabled");
+        initFilters();
     }
 
-    public java.util.List<String> getDetectedLocations() {
-        return java.util.Collections.unmodifiableList(detectedLocations);
+    public Set<String> getDetectedLocations() {
+        return Collections.unmodifiableSet(detectedLocations);
     }
+
 
     @Override
     public void onDisable() {
+        info("BaseFinder disabled");
         if (config.saveToFile) {
             saveData();
         }
         scannedChunks.clear();
         chunksToScan.clear();
         detectedLocations.clear();
-        info("BaseFinder disabled");
     }
 
     private void onTick(ClientBotTick event) {
@@ -161,9 +161,9 @@ public class BaseFinder extends BaseModule {
         if (spamCooldownTicks > 0) {
             spamCooldownTicks--;
         }
-
+        boolean b = config.portalFinder || config.shulkerFinder || config.blockListEnabled;
         // 每 tick 从队列中扫描一个区块
-        if (!chunksToScan.isEmpty()) {
+        if (!chunksToScan.isEmpty() && b) {
             scanOneChunk();
         }
 
@@ -174,8 +174,11 @@ public class BaseFinder extends BaseModule {
         }
 
         // 实体扫描
-        if (config.itemFrameFinder || config.enderPearlFinder || config.nameTagFinder ||
-                config.villagerFinder || config.boatFinder) {
+        if (config.itemFrameFinder
+                || config.enderPearlFinder
+                || config.nameTagFinder
+                || config.villagerFinder
+                || config.boatFinder) {
             if (entityScanTicks >= config.entityScanDelay) {
                 scanEntities();
                 entityScanTicks = 0;
@@ -199,35 +202,23 @@ public class BaseFinder extends BaseModule {
     }
 
     private void addChunksToScanQueue() {
-        int viewDistance = CACHE.getChunkCache().getServerViewDistance();
-        int playerChunkX = (int) (CACHE.getPlayerCache().getX()) >> 4;
-        int playerChunkZ = (int) (CACHE.getPlayerCache().getZ()) >> 4;
-
         // 添加渲染距离内的区块到队列（跳过已扫描的）
-        for (int x = -viewDistance; x <= viewDistance; x++) {
-            for (int z = -viewDistance; z <= viewDistance; z++) {
-                int chunkX = playerChunkX + x;
-                int chunkZ = playerChunkZ + z;
-                String chunkKey = chunkX + ":" + chunkZ;
+        CACHE.getChunkCache().getCache().forEach((chunkPos, chunk) -> {
 
-                if (!scannedChunks.contains(chunkKey) && !chunksToScan.contains(chunkKey)) {
-                    chunksToScan.add(chunkKey);
-                }
+            if (!scannedChunks.contains(chunkPos) && !chunksToScan.contains(chunkPos)) {
+                chunksToScan.add(chunkPos);
             }
-        }
+        });
     }
 
     private void scanOneChunk() {
         if (chunksToScan.isEmpty()) return;
 
-        String chunkKey = chunksToScan.poll();
+        Long chunkKey = chunksToScan.poll();
         if (chunkKey == null) return;
 
-        String[] parts = chunkKey.split(":");
-        if (parts.length != 2) return;
-
-        int chunkX = Integer.parseInt(parts[0]);
-        int chunkZ = Integer.parseInt(parts[1]);
+        int chunkX = Chunk.longToChunkX(chunkKey);
+        int chunkZ = Chunk.longToChunkZ(chunkKey);
 
         // 标记为已扫描
         scannedChunks.add(chunkKey);
@@ -237,13 +228,14 @@ public class BaseFinder extends BaseModule {
         List<BlockPos> quickScan = WorldScanner.scanChunk(combinedFilter, chunkX, chunkZ, 1, Integer.MIN_VALUE);
         long elapsed = (System.nanoTime() - startTime) / 1_000_000;
 
-        if (quickScan.isEmpty()) {
-            // 没有找到任何方块，跳过详细扫描
-            info("Quick scan chunk [{}, {}] took {}ms, no match", chunkX, chunkZ, elapsed);
-            return;
+        if (elapsed > 45) {
+            info("slow scan chunk took {}ms", elapsed);
         }
 
-        info("Quick scan chunk [{}, {}] took {}ms, found match", chunkX, chunkZ, elapsed);
+        if (quickScan.isEmpty()) {
+            // 没有找到任何方块，跳过详细扫描
+            return;
+        }
 
         // 第二步：细分扫描，确定具体是哪种方块
         if (config.portalFinder) {
@@ -293,7 +285,7 @@ public class BaseFinder extends BaseModule {
     }
 
     private void scanEntities() {
-        var entities = CACHE.getEntityCache().getEntities().values();
+        Collection<Entity> entities = CACHE.getEntityCache().getEntities().values();
         Map<String, Integer> chunkEntityCount = new HashMap<>();
 
         for (var entity : entities) {
@@ -383,45 +375,40 @@ public class BaseFinder extends BaseModule {
 
     // 数据持久化
     private void saveData() {
-        // 复制当前数据，避免在异步执行时被修改
-        List<String> locationsToSave = new ArrayList<>(detectedLocations);
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                Path dir = Path.of("basefinder");
-                Files.createDirectories(dir);
-                Path file = dir.resolve("detected_locations.json");
+        try {
+            Path dir = Path.of("basefinder");
+            Files.createDirectories(dir);
+            Path file = dir.resolve("detected_locations.json");
 
-                Map<String, Object> data = new HashMap<>();
-                data.put("locations", locationsToSave);
+            Map<String, Object> data = new HashMap<>();
+            data.put("locations", detectedLocations);
 
-                Gson gson = new Gson();
-                String json = gson.toJson(data);
-                Files.writeString(file, json);
-            } catch (IOException e) {
-                error("Failed to save data: " + e.getMessage());
-            }
-        });
+            Gson gson = new Gson();
+            String json = gson.toJson(data);
+            Files.writeString(file, json);
+        } catch (IOException e) {
+            error("Failed to save data: " + e.getMessage());
+        }
     }
 
     private void loadData() {
-        CompletableFuture.runAsync(() -> {
-            try {
-                Path file = Path.of("basefinder/detected_locations.json");
-                if (!Files.exists(file)) return;
+        try {
+            Path file = Path.of("basefinder/detected_locations.json");
+            if (!Files.exists(file)) return;
 
-                String json = Files.readString(file);
-                Gson gson = new Gson();
-                java.lang.reflect.Type type = new TypeToken<Map<String, List<String>>>() {
-                }.getType();
-                Map<String, List<String>> data = gson.fromJson(json, type);
+            String json = Files.readString(file);
+            Gson gson = new Gson();
+            Type type = new TypeToken<Map<String, List<String>>>() {
+            }.getType();
 
-                if (data != null && data.containsKey("locations")) {
-                    detectedLocations.addAll(data.get("locations"));
-                }
-            } catch (IOException e) {
-                error("Failed to load data: " + e.getMessage());
+            Map<String, List<String>> data = gson.fromJson(json, type);
+
+            if (data != null && data.containsKey("locations")) {
+                detectedLocations.addAll(data.get("locations"));
             }
-        });
+        } catch (IOException e) {
+            error("Failed to load data: " + e.getMessage());
+        }
     }
 }

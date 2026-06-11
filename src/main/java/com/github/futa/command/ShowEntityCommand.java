@@ -97,7 +97,7 @@ public class ShowEntityCommand extends Command {
                     break;
                 }
 
-                String entityInfo = String.format("**%d.** %SimpleCache (%d, %d, %d)",
+                String entityInfo = String.format("**%d.** %s (%d, %d, %d)",
                         count + 1,
                         entity.getEntityType().name(),
                         (int) entity.getX(),
@@ -153,7 +153,7 @@ public class ShowEntityCommand extends Command {
             int totalTypes = sortedEntries.size();
 
             for (var entry : sortedEntries) {
-                String typeInfo = String.format("**%SimpleCache:** %d 个",
+                String typeInfo = String.format("**%s:** %d 个",
                         entry.getKey(), entry.getValue());
                 description.append(typeInfo);
                 if (!entry.equals(sortedEntries.get(sortedEntries.size() - 1))) {

@@ -91,7 +91,7 @@ public class AutoLoginModule extends Module {
             return;
         }
         String reason = event.reason();
-        info("客户端断开连接:" + reason);
+        info("客户端断开连接:{}", reason);
         updateOnlineStatus(false);
 
 

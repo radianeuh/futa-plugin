@@ -1,5 +1,6 @@
 package com.github.futa.module;
 
+import com.github.futa.BaseModule;
 import com.github.futa.FutaPlugin;
 import com.github.futa.config.ElytraFlyConfig;
 import com.github.futa.util.ZUtil;
@@ -11,7 +12,6 @@ import com.zenith.event.client.ClientBotTick;
 import com.zenith.feature.player.Bot;
 import com.zenith.feature.player.InputRequest;
 import com.zenith.feature.player.RotationHelper;
-import com.zenith.module.api.Module;
 import com.zenith.module.impl.AutoArmor;
 import com.zenith.util.ItemUtil;
 import com.zenith.util.math.MutableVec3d;
@@ -37,7 +37,7 @@ import static com.zenith.mc.item.ItemRegistry.ELYTRA;
  * 3. 当到达最高点（pitch=-40 且 Y 坐标不再上升）时重置边界
  * 4. 通过跟踪 Y 位置变化来检测是否到达最高点
  */
-public class ElytraFlyModule extends Module {
+public class ElytraFlyModule extends BaseModule {
 
     ElytraFlyConfig config = FutaPlugin.PLUGIN_CONFIG.elytraFly;
 
@@ -78,6 +78,13 @@ public class ElytraFlyModule extends Module {
             MODULE.get(AutoArmor.class).syncEnabledFromConfig();
             info("AutoArmor 已关闭， 防止干扰挂机飞行");
         }
+        if (!PLUGIN_CONFIG.elytraUnbreak.enabled) {
+            PLUGIN_CONFIG.elytraUnbreak.enabled = true;
+            MODULE.get(ElytraUnbreakModule.class).syncEnabledFromConfig();
+            info("elytraUnbreak 已开启， 无消耗挂机飞行");
+
+        }
+
         var player = CACHE.getPlayerCache().getThePlayer();
         if (!Globals.BOT.isOnGround()) {
             resetBounds(player);
@@ -88,6 +95,7 @@ public class ElytraFlyModule extends Module {
         goingUp = true;
         lastY = player.getY();
         // 重置 goto 目标，防止跨会话残留导致转圈
+
 
         info("ElytraFly 开始 upper:{}, lower:{}", (int) config.pitch40UpperBounds, (int) config.pitch40LowerBounds);
     }
@@ -278,7 +286,7 @@ public class ElytraFlyModule extends Module {
         double dz = player.getZ() - config.targetZ;
         double distance = Math.sqrt(dx * dx + dz * dz);
         if (distance <= config.disconnectDistance && (config.targetX != 0 || config.targetZ != 0)) {
-            info("已到达目标坐标 (" + config.targetX + ", " + config.targetZ + ") 附近，距离: " + String.format("%.1f", distance) + " 格");
+            info("已到达目标坐标 ({}, {}) 附近，距离: {} 格", config.targetX, config.targetZ, String.format("%.1f", distance));
             info("正在断开连接...");
             Proxy.getInstance().disconnect();
         }

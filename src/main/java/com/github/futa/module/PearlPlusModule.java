@@ -101,7 +101,7 @@ public class PearlPlusModule extends BaseModule {
             System.out.println("消息: " + result.content);
 
             if (StrUtil.startWith(result.content, "拉")) {
-                info("收到来自 " + username + " 的拉珍珠请求 " + event.message());
+                info("收到来自 {} 的拉珍珠请求 {}", username, event.message());
 
 
                 Config.Client.Extra.PearlLoader.Pearl pearl = getPearl(username);
@@ -190,7 +190,7 @@ public class PearlPlusModule extends BaseModule {
     }
 
     private Config.Client.Extra.PearlLoader.Pearl addPearl(String username, int x, int y, int z) {
-        info("添加用户 " + username + " 的珍珠信息");
+        info("添加用户 {} 的珍珠信息", username);
         Config.Client.Extra.PearlLoader.Pearl pearl = new Config.Client.Extra.PearlLoader.Pearl(username, x, y, z);
         CONFIG.client.extra.pearlLoader.pearls.add(pearl);
 

@@ -8,6 +8,8 @@ import com.zenith.command.api.CommandContext;
 import com.zenith.command.api.CommandUsage;
 import com.zenith.discord.Embed;
 
+import java.util.Arrays;
+
 import static com.github.futa.FutaPlugin.PLUGIN_CONFIG;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -107,7 +109,7 @@ public class ContainerStressTestCommand extends Command {
                     PLUGIN_CONFIG.stressTest.delayValues = new int[]{getInteger(c, "d1")};
                     c.getSource().getEmbed()
                             .title("Delays Set")
-                            .description("Delays: " + java.util.Arrays.toString(PLUGIN_CONFIG.stressTest.delayValues));
+                            .description("Delays: " + Arrays.toString(PLUGIN_CONFIG.stressTest.delayValues));
                 })));
     }
 
@@ -117,7 +119,7 @@ public class ContainerStressTestCommand extends Command {
                 .addField("Stress Test", toggleStr(PLUGIN_CONFIG.stressTest.enabled))
                 .addField("Test Chests", String.valueOf(PLUGIN_CONFIG.stressTest.testChests.size()))
                 .addField("Repeat Count", String.valueOf(PLUGIN_CONFIG.stressTest.repeatCount))
-                .addField("Delay Values", java.util.Arrays.toString(PLUGIN_CONFIG.stressTest.delayValues))
+                .addField("Delay Values", Arrays.toString(PLUGIN_CONFIG.stressTest.delayValues))
                 .primaryColor();
     }
 }

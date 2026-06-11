@@ -68,7 +68,7 @@ public class DeathLogger extends Module {
             Path deathsPath = Paths.get(DEATHS_DIRECTORY);
             if (!Files.exists(deathsPath)) {
                 Files.createDirectories(deathsPath);
-                info("Created deaths directory: " + deathsPath.toAbsolutePath());
+                info("Created deaths directory: {}", deathsPath.toAbsolutePath());
             }
         } catch (IOException e) {
             error("Failed to create deaths directory", e);
@@ -98,10 +98,10 @@ public class DeathLogger extends Module {
 
         DeathResult result = DieMessageParser.parseDeathMessage(component);
 
-        info("RAW messageString:" + messageString);
-        info("RAW getPlayerNames:" + getPlayerNames(component));
+        info("RAW messageString: {}", messageString);
+        info("RAW getPlayerNames: {}", getPlayerNames(component));
         String json = ComponentSerializer.serializeJson(component);
-        info("RAW json:" + json);
+        info("RAW json: {}", json);
 
 //        saveDeathToFile(new DeathLogEntry(result, messageString, json));
         handleDeathMessage(result, component, messageString);
@@ -112,7 +112,7 @@ public class DeathLogger extends Module {
         try {
             String componentJson = ComponentSerializer.serializeJson(component);
 
-            info("RAW:" + componentJson);
+            info("RAW:{}", componentJson);
 
             String message = messageString;
 

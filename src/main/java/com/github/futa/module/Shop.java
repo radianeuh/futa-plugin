@@ -65,7 +65,7 @@ public class Shop extends BaseModule {
             }
 
             String radomMsg = getRadomMsg();
-            info("回复私信消息：" + result.username + "  " + radomMsg);
+            info("回复私信消息：{}  {}", result.username, radomMsg);
             sendClientPacketAsync(ChatUtil.getWhisperChatPacket(result.username, radomMsg));
             cache.put(result.username, result.username);
         }

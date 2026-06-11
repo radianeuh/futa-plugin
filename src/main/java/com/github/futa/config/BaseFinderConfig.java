@@ -5,11 +5,6 @@ import java.util.List;
 public class BaseFinderConfig {
     public boolean enabled = false;
 
-    // 方块检测器开关
-    public boolean portalFinder = true;
-    public boolean shulkerFinder = true;
-    public boolean beaconFinder = true;
-
     // 实体检测器开关
     public boolean itemFrameFinder = true;
     public boolean enderPearlFinder = true;
@@ -17,6 +12,12 @@ public class BaseFinderConfig {
     public boolean villagerFinder = true;
     public boolean boatFinder = true;
     public int entityScanDelay = 20;
+
+
+    // 方块检测器开关
+    public boolean portalFinder = true;
+    public boolean shulkerFinder = true;
+    public boolean beaconFinder = true;
 
     // 自定义方块列表
     public boolean blockListEnabled = true;

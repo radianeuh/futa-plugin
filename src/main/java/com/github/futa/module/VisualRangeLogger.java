@@ -75,9 +75,9 @@ public class VisualRangeLogger extends BaseModule {
             FileWriter fileWriter = new FileWriter(logFile, CONFIG.appendToFile);
             logWriter = new BufferedWriter(fileWriter);
 
-            info("VisualRangeLogger initialized, logging to: " + CONFIG.logFilePath);
+            info("VisualRangeLogger initialized, logging to: {}", CONFIG.logFilePath);
         } catch (IOException e) {
-            error("Failed to initialize VisualRangeLogger: " + e.getMessage());
+            error("Failed to initialize VisualRangeLogger: {}", e.getMessage());
         }
     }
 
@@ -88,9 +88,9 @@ public class VisualRangeLogger extends BaseModule {
             Path backupPath = Paths.get(CONFIG.logFilePath + "." + timestamp + ".bak");
 
             Files.move(originalPath, backupPath);
-            info("Rotated log file to: " + backupPath);
+            info("Rotated log file to: {}", backupPath);
         } catch (IOException e) {
-            error("Failed to rotate log file: " + e.getMessage());
+            error("Failed to rotate log file: {}", e.getMessage());
         }
     }
 
