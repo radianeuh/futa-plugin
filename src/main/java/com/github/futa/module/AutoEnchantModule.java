@@ -588,10 +588,15 @@ public class AutoEnchantModule extends BaseModule {
         return switch (type) {
             case SWORD -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_SWORD.name());
             case PICKAXE -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_PICKAXE.name());
+            case AXE -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_AXE.name());
+            case SHOVEL -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_SHOVEL.name());
+            case HOE -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_HOE.name());
             case HELMET -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_HELMET.name());
             case CHESTPLATE -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_CHESTPLATE.name());
             case LEGGINGS -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_LEGGINGS.name());
             case BOOTS -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_BOOTS.name());
+            case MACE -> config.getEquipmentStrategy(ItemRegistry.MACE.name());
+            case ELYTRA -> config.getEquipmentStrategy(ItemRegistry.ELYTRA.name());
         };
     }
 
