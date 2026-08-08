@@ -53,28 +53,21 @@ public class AutoEnchantModule extends BaseModule {
     private List<ItemStack> currentEnchantBook = new ArrayList<>();
     private BlockPos currentAnvil = null;
 
-    // Enchant progress tracking
     private Map<String, Integer> currentEquipmentEnchants = new HashMap<>();
 
-    // Enchant book chest cache: records which chest index contains each enchant book
     private Map<String, Integer> enchantBookChestCache = new ConcurrentHashMap<>();
 
-    // Search state
     private boolean hasSearchedAllChests = false;
 
-    // Track enchant attempt counts
     private int currentEnchantAttempts = 0;
     private ItemStack lastEnchantedItem = null;
 
-    // KillAura state tracking
     private boolean killAuraWasEnabled = false;
 
-    // Mapping from diamond item IDs to equipment types
     public static final Map<Integer, EquipmentType> DIAMOND_ITEM_MAP = new ConcurrentHashMap<>();
 
     public static AutoEnchantConfig config = PLUGIN_CONFIG.autoEnchant;
 
-    // Subcomponents
     private final InventoryHelper invHelper = new InventoryHelper();
     private final EnchantResultChecker resultChecker = new EnchantResultChecker();
     private final ExperienceCollector xpCollector = new ExperienceCollector();
@@ -137,13 +130,10 @@ public class AutoEnchantModule extends BaseModule {
         interactTimer.reset();
         swordHandler.reset();
 
-        // Restore KillAura
         if (config.pauseKillAura && !CONFIG.client.extra.killAura.enabled) {
             switchKillAura(true);
         }
     }
-
-    // ========== State handling methods ==========
 
     private void onTick(ClientBotTick event) {
         switch (state) {
@@ -182,7 +172,6 @@ public class AutoEnchantModule extends BaseModule {
     }
 
     private void handleOpenEquipmentChest() {
-        // First check player inventory
         for (ItemStack itemStack : invHelper.getPlayerInv()) {
             if (DIAMOND_ITEM_MAP.containsKey(itemStack.getId())) {
                 var equipmentType = DIAMOND_ITEM_MAP.get(itemStack.getId());
@@ -280,16 +269,18 @@ public class AutoEnchantModule extends BaseModule {
                 }
             }
 
-            // Check cached location
             if (currentCachedChestIndex == -1) {
-                EquipmentType equipmentType = DIAMOND_ITEM_MAP.get(getCurrentEquipment().getId());
-                if (equipmentType != null) {
-                    AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(equipmentType);
-                    List<String> neededEnchants = resultChecker.getAllNeededEnchantmentsBook(strategy);
-                    Integer cachedChestIndex = chestManager.findCachedChest(neededEnchants);
-                    if (cachedChestIndex != null) {
-                        currentBookChestIndex = cachedChestIndex;
-                        currentCachedChestIndex = cachedChestIndex;
+                ItemStack currentEquip = getCurrentEquipment();
+                if (currentEquip != null) {
+                    EquipmentType equipmentType = DIAMOND_ITEM_MAP.get(currentEquip.getId());
+                    if (equipmentType != null) {
+                        AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(equipmentType);
+                        List<String> neededEnchants = resultChecker.getAllNeededEnchantmentsBook(strategy);
+                        Integer cachedChestIndex = chestManager.findCachedChest(neededEnchants);
+                        if (cachedChestIndex != null && cachedChestIndex < config.enchantBookChests.size()) {
+                            currentBookChestIndex = cachedChestIndex;
+                            currentCachedChestIndex = cachedChestIndex;
+                        }
                     }
                 }
             }
@@ -344,9 +335,8 @@ public class AutoEnchantModule extends BaseModule {
             info("Finished withdrawing enchantment books");
             if (!currentEnchantBook.isEmpty()) {
                 currentCachedChestIndex = -1;
-                currentBookChestIndex = 0;
-                setState(State.OPEN_ENCHANT_BOOK_CHEST);
                 hasSearchedAllChests = false;
+                setState(State.OPEN_ENCHANT_BOOK_CHEST);
             } else {
                 currentBookChestIndex++;
                 info("No enchantment books found, trying next chest " + currentBookChestIndex);
@@ -357,7 +347,7 @@ public class AutoEnchantModule extends BaseModule {
 
     private void handleOpenAnvil() {
         if (currentItemToEnchant != null) {
-            if (currentItemToEnchant.equals(lastEnchantedItem)) {
+            if (lastEnchantedItem != null && currentItemToEnchant.getId() == lastEnchantedItem.getId()) {
                 currentEnchantAttempts++;
                 info("Equipment enchant attempts: " + currentEnchantAttempts);
                 if (currentEnchantAttempts > 10) {
@@ -421,6 +411,7 @@ public class AutoEnchantModule extends BaseModule {
 
         if (!hasEnoughEnchantBook()) {
             warn("Not enough enchantment books: need 7, currently have " + invHelper.getPlayerInvBook().size());
+            closeCurrentContainer();
             setState(State.COLLECT_EXPERIENCE);
             return;
         }
@@ -580,8 +571,6 @@ public class AutoEnchantModule extends BaseModule {
         setState(State.COLLECT_EXPERIENCE);
     }
 
-    // ========== Public helpers ==========
-
     public static AutoEnchantConfig.EnchantStrategy getEnchantStrategy(EquipmentType type) {
         return switch (type) {
             case SWORD -> config.getEquipmentStrategy(ItemRegistry.DIAMOND_SWORD.name());
@@ -609,13 +598,10 @@ public class AutoEnchantModule extends BaseModule {
             }
         }
 
-        // KillAura pause/resume logic
         if (config.pauseKillAura) {
             if (state == State.COLLECT_EXPERIENCE && newState != State.COLLECT_EXPERIENCE) {
-                // Pause KillAura when starting actions
                 switchKillAura(false);
             } else if (state != State.COLLECT_EXPERIENCE && newState == State.COLLECT_EXPERIENCE) {
-                // Resume KillAura when collecting XP
                 switchKillAura(true);
             }
         }
@@ -623,9 +609,6 @@ public class AutoEnchantModule extends BaseModule {
         this.state = newState;
     }
 
-    /**
-     * Toggle KillAura module state
-     */
     private void switchKillAura(boolean enable) {
         if (CONFIG.client.extra.killAura.enabled == enable) {
             return;
@@ -644,7 +627,7 @@ public class AutoEnchantModule extends BaseModule {
     }
 
     private boolean checkLeggingEnchantments() {
-        if (DIAMOND_ITEM_MAP.get(currentItemToEnchant.getId()) == EquipmentType.LEGGINGS) {
+        if (currentItemToEnchant != null && DIAMOND_ITEM_MAP.get(currentItemToEnchant.getId()) == EquipmentType.LEGGINGS) {
             Map<String, Integer> enchantmentMap = EnchantmentUtil.getEnchantmentMapItem(currentItemToEnchant);
             if (enchantmentMap.containsKey("protection")) {
                 info("Found incompatible Protection leggings with level: " + enchantmentMap.get("protection"));
@@ -726,8 +709,6 @@ public class AutoEnchantModule extends BaseModule {
         return false;
     }
 
-    // ========== Internal class: Inventory helper ==========
-
     private class InventoryHelper {
 
         public List<ItemStack> getPlayerInv() {
@@ -768,6 +749,7 @@ public class AutoEnchantModule extends BaseModule {
         }
 
         public Map<String, Integer> getEquipmentEnchantsMaxLevel(ItemStack item) {
+            if (item == null) return new LinkedHashMap<>();
             Map<String, Integer> enchantmentMap = EnchantmentUtil.getEnchantmentMapItem(item);
             Map<String, Integer> map = new LinkedHashMap<>();
             for (Map.Entry<String, Integer> entry : enchantmentMap.entrySet()) {
@@ -798,27 +780,28 @@ public class AutoEnchantModule extends BaseModule {
             }
 
             if (item == null) return false;
+            EquipmentType equipType = DIAMOND_ITEM_MAP.get(item.getId());
+            if (equipType == null) return false;
 
             for (ItemStack itemStack : playerInv) {
                 if (EnchantmentUtil.isEnchantedBook(itemStack)) {
                     Map<String, Integer> enchantmentMap = EnchantmentUtil.getEnchantmentMap(itemStack);
                     for (String key : enchantmentMap.keySet()) {
-                        if (getEnchantStrategy(DIAMOND_ITEM_MAP.get(item.getId())).enchantments.contains(key)) {
+                        if (getEnchantStrategy(equipType).enchantments.contains(key)) {
                             enchantments.add(key);
                         }
                     }
                 }
             }
 
-            return enchantments.size() >= getEnchantStrategy(DIAMOND_ITEM_MAP.get(item.getId())).enchantments.size();
+            return enchantments.size() >= getEnchantStrategy(equipType).enchantments.size();
         }
     }
-
-    // ========== Internal class: Enchant result checker ==========
 
     private class EnchantResultChecker {
 
         public boolean needsMoreEnchants(ItemStack equipment, EquipmentType type) {
+            if (equipment == null || type == null) return false;
             AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(type);
             if (!strategy.enabled || strategy.enchantments.isEmpty()) {
                 return false;
@@ -839,9 +822,13 @@ public class AutoEnchantModule extends BaseModule {
         }
 
         public String getNextNeededEnchantment() {
-            AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(DIAMOND_ITEM_MAP.get(currentItemToEnchant.getId()));
+            if (currentItemToEnchant == null) return "";
+            EquipmentType type = DIAMOND_ITEM_MAP.get(currentItemToEnchant.getId());
+            if (type == null) return "";
+
+            AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(type);
             if (!strategy.enabled || strategy.enchantments.isEmpty()) {
-                return null;
+                return "";
             }
 
             Map<String, Integer> currentEnchants = invHelper.getEquipmentEnchantsMaxLevel(currentItemToEnchant);
@@ -860,7 +847,7 @@ public class AutoEnchantModule extends BaseModule {
 
         public List<String> getAllNeededEnchantmentsBook(AutoEnchantConfig.EnchantStrategy strategy) {
             List<String> neededEnchants = new ArrayList<>();
-            if (!strategy.enabled || strategy.enchantments.isEmpty()) {
+            if (strategy == null || !strategy.enabled || strategy.enchantments.isEmpty()) {
                 return neededEnchants;
             }
 
@@ -875,8 +862,6 @@ public class AutoEnchantModule extends BaseModule {
             return neededEnchants;
         }
     }
-
-    // ========== Internal class: Experience collector ==========
 
     private class ExperienceCollector {
         private int recordedLevel = -1;
@@ -921,8 +906,6 @@ public class AutoEnchantModule extends BaseModule {
         }
     }
 
-    // ========== Internal class: Chest operations ==========
-
     private class ChestManager {
         private final Map<String, Integer> bookCache = new ConcurrentHashMap<>();
 
@@ -954,22 +937,14 @@ public class AutoEnchantModule extends BaseModule {
         }
     }
 
-    // ========== Internal class: Anvil helper ==========
-
     private class AnvilHelper {
 
-        /**
-         * Check if anvil input slot 0 already has equipment
-         */
         public boolean isEquipmentInAnvilSlot0(Container openContainer) {
             var item = openContainer.getItemStack(0);
             return item != null && item != Container.EMPTY_STACK
                     && DIAMOND_ITEM_MAP.containsKey(item.getId());
         }
 
-        /**
-         * Get the item in anvil input slot 0
-         */
         public ItemStack getAnvilSlot0Item(Container openContainer) {
             var item = openContainer.getItemStack(0);
             if (item != null && item != Container.EMPTY_STACK) {
@@ -978,9 +953,6 @@ public class AutoEnchantModule extends BaseModule {
             return null;
         }
 
-        /**
-         * Find equipment to enchant from the chest
-         */
         public List<InventoryAction> findEquipmentToEnchant(Container openContainer) {
             return InventoryActionMacros.withdraw(
                     openContainer.getContainerId(),
@@ -1001,9 +973,6 @@ public class AutoEnchantModule extends BaseModule {
             );
         }
 
-        /**
-         * Deposit equipment into the first anvil slot
-         */
         public List<InventoryAction> depositEquipment(Container openContainer, ItemStack[] equipmentHolder) {
             return InventoryActionMacros.deposit(
                     openContainer.getContainerId(),
@@ -1022,9 +991,6 @@ public class AutoEnchantModule extends BaseModule {
             );
         }
 
-        /**
-         * Rename equipment (use random name from config)
-         */
         public void addRenameAction(List<InventoryAction> actions, Container openContainer, ItemStack item) {
             String name = ItemRegistry.REGISTRY.get(item.getId()).name();
             String customName = EnchantmentUtil.getCustomName(item);
@@ -1035,10 +1001,6 @@ public class AutoEnchantModule extends BaseModule {
             info("Renaming equipment: " + name);
         }
 
-        /**
-         * Check XP and set needXp flag
-         * @return true if not enough XP
-         */
         public boolean checkAndSetXp(int requiredLevel) {
             if (CACHE.getPlayerCache().getThePlayer().getLevel() < requiredLevel) {
                 info("Need level " + requiredLevel + " XP, current level: " + CACHE.getPlayerCache().getThePlayer().getLevel());
@@ -1049,14 +1011,12 @@ public class AutoEnchantModule extends BaseModule {
             return false;
         }
 
-        /**
-         * Find matching enchant book in the chest
-         */
         public List<InventoryAction> findMatchingEnchantBook(Container openContainer, ItemStack currentItem, List<ItemStack> enchantBookList, int bookChestIndex, Map<String, Integer> cache) {
             List<InventoryAction> withdrawActions = Lists.newArrayList();
-            if (getCurrentEquipment() == null) return withdrawActions;
+            ItemStack currentEquip = getCurrentEquipment();
+            if (currentEquip == null) return withdrawActions;
 
-            EquipmentType equipmentType = DIAMOND_ITEM_MAP.get(getCurrentEquipment().getId());
+            EquipmentType equipmentType = DIAMOND_ITEM_MAP.get(currentEquip.getId());
             if (equipmentType == null) return withdrawActions;
 
             AutoEnchantConfig.EnchantStrategy strategy = getEnchantStrategy(equipmentType);
@@ -1070,7 +1030,21 @@ public class AutoEnchantModule extends BaseModule {
                 return withdrawActions;
             }
 
+            if (equipmentType == EquipmentType.SWORD) {
+                int swordStage = swordHandler.determineStage();
+                if (swordStage == 2 || swordStage == 4 || swordStage == 6) {
+                    int targetBookIdx = swordStage;
+                    if (targetBookIdx < strategy.enchantments.size()) {
+                        String requiredEnchant = strategy.enchantments.get(targetBookIdx);
+                        neededEnchants.clear();
+                        neededEnchants.add(requiredEnchant);
+                    }
+                }
+            }
+
             Map<String, ItemStack> foundBooks = new HashMap<>();
+            Map<String, Integer> tempCacheUpdates = new HashMap<>();
+
             withdrawActions = InventoryActionMacros.withdraw(
                     openContainer.getContainerId(),
                     itemStack -> {
@@ -1078,9 +1052,15 @@ public class AutoEnchantModule extends BaseModule {
                         Map<String, Integer> enchantmentMap = EnchantmentUtil.getBookEnchantmentMapMaxLevel(itemStack);
                         for (String neededEnchant : neededEnchants) {
                             if (enchantmentMap.containsKey(neededEnchant) && !foundBooks.containsKey(neededEnchant)) {
+                                if (equipmentType == EquipmentType.SWORD) {
+                                    int swordStage = swordHandler.determineStage();
+                                    if ((swordStage == 2 || swordStage == 4 || swordStage == 6) && enchantmentMap.size() != 1) {
+                                        continue;
+                                    }
+                                }
                                 info("Withdrawing enchant book: " + EnchantmentUtil.getChinese(neededEnchant) + enchantmentMap.get(neededEnchant));
                                 foundBooks.put(neededEnchant, itemStack);
-                                cache.put(neededEnchant, bookChestIndex);
+                                tempCacheUpdates.put(neededEnchant, bookChestIndex);
                                 return true;
                             }
                         }
@@ -1088,13 +1068,14 @@ public class AutoEnchantModule extends BaseModule {
                     }, 1
             );
 
-            enchantBookList.addAll(foundBooks.values());
+            if (!withdrawActions.isEmpty()) {
+                cache.putAll(tempCacheUpdates);
+                enchantBookList.addAll(foundBooks.values());
+            }
+
             return withdrawActions;
         }
 
-        /**
-         * Normal enchant handling
-         */
         public void handleNormalEnchant(Container openContainer, List<InventoryAction> actions, ItemStack equipment, EquipmentType type) {
             info("Handling normal enchant");
 
@@ -1102,12 +1083,11 @@ public class AutoEnchantModule extends BaseModule {
                 return;
             }
 
-            // Check if anvil input slot 0 already has equipment
             boolean alreadyInAnvil = anvilHelper.isEquipmentInAnvilSlot0(openContainer);
             List<InventoryAction> equipActions;
             if (alreadyInAnvil) {
                 info("Equipment is already in anvil input slot 0, skipping deposit");
-                equipActions = Lists.newArrayList(); // empty list, skip deposit
+                equipActions = Lists.newArrayList();
             } else {
                 ItemStack[] equipmentHolder = new ItemStack[]{equipment};
                 equipActions = depositEquipment(openContainer, equipmentHolder);
@@ -1145,8 +1125,6 @@ public class AutoEnchantModule extends BaseModule {
         }
     }
 
-    // ========== Internal class: Sword special enchant handling ==========
-
     private class SwordEnchantHandler {
         private int stage = 0;
         private boolean active = false;
@@ -1156,9 +1134,6 @@ public class AutoEnchantModule extends BaseModule {
             active = false;
         }
 
-        /**
-         * Determine current stage based on sword state
-         */
         public int determineStage() {
             ItemStack sword = getCurrentEquipment();
             if (sword == null) return stage;
@@ -1192,9 +1167,6 @@ public class AutoEnchantModule extends BaseModule {
             return stage;
         }
 
-        /**
-         * Main entry for sword handling
-         */
         public void handle(Container openContainer, List<InventoryAction> actions) {
             int currentStage = determineStage();
             active = currentStage > 0 && currentStage < 8;
@@ -1212,9 +1184,6 @@ public class AutoEnchantModule extends BaseModule {
             info("Sword enchant handling stage: " + currentStage);
         }
 
-        /**
-         * Stage 1: enchant first book
-         */
         private void handleFirstBook(Container openContainer, List<InventoryAction> actions) {
             info("Enchanting first book");
 
@@ -1262,14 +1231,11 @@ public class AutoEnchantModule extends BaseModule {
             }
         }
 
-        /**
-         * Merge two enchant books (stages 2/4/6)
-         */
         private void handleMergeStage(Container openContainer, List<InventoryAction> actions, int currentStage) {
             info("Merging enchant books, stage: " + currentStage);
 
-            int bookIndex1 = currentStage - 1; // index 1/3/5
-            int bookIndex2 = currentStage;     // index 2/4/6
+            int bookIndex1 = currentStage - 1;
+            int bookIndex2 = currentStage;
 
             AtomicReference<ItemStack> book1 = new AtomicReference<>();
             AtomicReference<ItemStack> book2 = new AtomicReference<>();
@@ -1316,10 +1282,6 @@ public class AutoEnchantModule extends BaseModule {
             }
         }
 
-        /**
-         * Enchant merged book (stages 3/5/7)
-         * @param bookConfigIndex index in config (1/3/5)
-         */
         private void handleEnchantMergedBook(Container openContainer, List<InventoryAction> actions, int bookConfigIndex) {
             info("Enchanted merged book (index " + bookConfigIndex + ")");
 
@@ -1370,27 +1332,25 @@ public class AutoEnchantModule extends BaseModule {
         }
     }
 
-    // ========== Enums ==========
-
     public enum State {
-        COLLECT_EXPERIENCE,             // collect experience
-        OPEN_EQUIPMENT_CHEST,           // find equipment chest
-        WAITING_EQUIPMENT_CHEST_OPEN,   // moving to equipment chest
-        WITHDRAW_EQUIPMENT,             // withdraw equipment
-        AWAIT_EQUIPMENT_WITHDRAW,       // wait for equipment withdraw completion
-        OPEN_ENCHANT_BOOK_CHEST,        // find enchant book chest
-        AWAIT_ENCHANT_BOOK_CHEST,       // moving to enchant book chest
-        WITHDRAW_ENCHANT_BOOK,          // withdraw enchant book
-        AWAIT_ENCHANT_BOOK_WITHDRAW,    // wait for enchant book withdraw completion
-        OPEN_ANVIL,                     // find anvil
-        AWAIT_ANVIL,                    // moving to anvil
-        ENCHANT_ITEM,                   // enchant item
-        AWAIT_ENCHANT,                  // wait for enchant completion
-        STORE_RESULT,                   // store results
-        MOVE_TO_RESULT_CHEST,           // move to result chest
-        DEPOSIT_RESULT,                 // deposit results
-        AWAIT_DEPOSIT,                  // wait for deposit completion
-        REST                            // rest
+        COLLECT_EXPERIENCE,
+        OPEN_EQUIPMENT_CHEST,
+        WAITING_EQUIPMENT_CHEST_OPEN,
+        WITHDRAW_EQUIPMENT,
+        AWAIT_EQUIPMENT_WITHDRAW,
+        OPEN_ENCHANT_BOOK_CHEST,
+        AWAIT_ENCHANT_BOOK_CHEST,
+        WITHDRAW_ENCHANT_BOOK,
+        AWAIT_ENCHANT_BOOK_WITHDRAW,
+        OPEN_ANVIL,
+        AWAIT_ANVIL,
+        ENCHANT_ITEM,
+        AWAIT_ENCHANT,
+        STORE_RESULT,
+        MOVE_TO_RESULT_CHEST,
+        DEPOSIT_RESULT,
+        AWAIT_DEPOSIT,
+        REST
     }
 
     public enum EquipmentType {
