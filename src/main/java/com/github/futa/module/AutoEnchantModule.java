@@ -431,6 +431,12 @@ public class AutoEnchantModule extends BaseModule {
             anvilHelper.handleNormalEnchant(openContainer, actions, currentItemToEnchant, equipmentType);
         }
 
+        if (needXp) {
+            closeCurrentContainer();
+            setState(State.COLLECT_EXPERIENCE);
+            return;
+        }
+
         if (!actions.isEmpty()) {
             actions.add(new CloseContainer(openContainer.getContainerId()));
             inventoryActionFuture = INVENTORY.submit(InventoryActionRequest.builder()
@@ -445,10 +451,6 @@ public class AutoEnchantModule extends BaseModule {
             warn("Cannot find equipment or enchantment books, going to retrieve them");
             closeCurrentContainer();
             setState(State.OPEN_EQUIPMENT_CHEST);
-        }
-
-        if (needXp) {
-            setState(State.COLLECT_EXPERIENCE);
         }
     }
 
@@ -579,10 +581,6 @@ public class AutoEnchantModule extends BaseModule {
     }
 
     // ========== Public helpers ==========
-
-    private int requiredXpLevel() {
-        return CACHE.getPlayerCache().getThePlayer().getLevel() >= 10 ? 10 : 40;
-    }
 
     public static AutoEnchantConfig.EnchantStrategy getEnchantStrategy(EquipmentType type) {
         return switch (type) {
@@ -882,9 +880,14 @@ public class AutoEnchantModule extends BaseModule {
 
     private class ExperienceCollector {
         private int recordedLevel = -1;
+        private int targetLevel = 10;
+
+        public void setTargetLevel(int level) {
+            this.targetLevel = Math.max(10, level);
+        }
 
         public boolean hasEnoughExperience() {
-            return CACHE.getPlayerCache().getThePlayer().getLevel() >= 10;
+            return CACHE.getPlayerCache().getThePlayer().getLevel() >= targetLevel;
         }
 
         public void collectExperience() {
@@ -898,7 +901,7 @@ public class AutoEnchantModule extends BaseModule {
             if (distance < 1.4) {
                 if (recordedLevel == -1) {
                     recordedLevel = currentLevel;
-                    info("Starting to collect XP, current level: " + currentLevel + ", target level: " + 10);
+                    info("Starting to collect XP, current level: " + currentLevel + ", target level: " + targetLevel);
                 } else if (currentLevel != recordedLevel) {
                     info("Level change: " + recordedLevel + " -> " + currentLevel);
                     recordedLevel = currentLevel;
@@ -914,6 +917,7 @@ public class AutoEnchantModule extends BaseModule {
 
         public void reset() {
             recordedLevel = -1;
+            targetLevel = 10;
         }
     }
 
@@ -1039,6 +1043,7 @@ public class AutoEnchantModule extends BaseModule {
             if (CACHE.getPlayerCache().getThePlayer().getLevel() < requiredLevel) {
                 info("Need level " + requiredLevel + " XP, current level: " + CACHE.getPlayerCache().getThePlayer().getLevel());
                 needXp = true;
+                xpCollector.setTargetLevel(requiredLevel);
                 return true;
             }
             return false;
