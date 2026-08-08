@@ -36,7 +36,7 @@ public class AutoEnchantCommand extends Command {
                 .description("""
                         Automatically enchants diamond equipment with configured enchantment strategies.
                         
-                        Only processes diamond equipment (sword, pickaxe, helmet, chestplate, leggings, boots).
+                        Only processes diamond equipment (sword, pickaxe, axe, shovel, hoe, helmet, chestplate, leggings, boots, mace, elytra).
                         Each equipment type has its own enchantment strategy configuration.
                         
                         Default enchantment strategies:
@@ -255,7 +255,7 @@ public class AutoEnchantCommand extends Command {
                     if (strategy == null) {
                         c.getSource().getEmbed()
                                 .title("Invalid Equipment Type")
-                                .description("Valid equipment types: sword, pickaxe, helmet, chestplate, leggings, boots");
+                                .description("Valid equipment types: sword, pickaxe, axe, shovel, hoe, helmet, chestplate, leggings, boots, mace, elytra");
                         return ERROR;
                     }
 
@@ -277,8 +277,8 @@ public class AutoEnchantCommand extends Command {
                     c.getSource().getEmbed()
                             .title("Pause KillAura " + (enchantConfig.pauseKillAura ? "Enabled" : "Disabled"))
                             .description(enchantConfig.pauseKillAura
-                                    ? "KillAura 将在附魔操作期间自动暂停"
-                                    : "KillAura 将保持启用状态");
+                                    ? "KillAura will be paused while auto enchanting"
+                                    : "KillAura will be enabled while auto enchanting");
                     return OK;
                 })));
     }
@@ -287,10 +287,15 @@ public class AutoEnchantCommand extends Command {
         return switch (equipment) {
             case "sword" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_SWORD.name());
             case "pickaxe" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_PICKAXE.name());
+            case "axe" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_AXE.name());
+            case "shovel" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_SHOVEL.name());
+            case "hoe" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_HOE.name());
             case "helmet" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_HELMET.name());
             case "chestplate" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_CHESTPLATE.name());
             case "leggings" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_LEGGINGS.name());
             case "boots" -> enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_BOOTS.name());
+            case "mace" -> enchantConfig.getEquipmentStrategy(ItemRegistry.MACE.name());
+            case "elytra" -> enchantConfig.getEquipmentStrategy(ItemRegistry.ELYTRA.name());
             default -> null;
         };
     }
@@ -315,10 +320,15 @@ public class AutoEnchantCommand extends Command {
 
         sb.append("**Sword**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_SWORD.name()))).append("\n");
         sb.append("**Pickaxe**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_PICKAXE.name()))).append("\n");
+        sb.append("**Axe**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_AXE.name()))).append("\n");
+        sb.append("**Shovel**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_SHOVEL.name()))).append("\n");
+        sb.append("**Hoe**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_HOE.name()))).append("\n");
         sb.append("**Helmet**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_HELMET.name()))).append("\n");
         sb.append("**Chestplate**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_CHESTPLATE.name()))).append("\n");
         sb.append("**Leggings**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_LEGGINGS.name()))).append("\n");
         sb.append("**Boots**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.DIAMOND_BOOTS.name())));
+        sb.append("**Mace**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.MACE.name())));
+        sb.append("**Elytra**: ").append(formatStrategy(enchantConfig.getEquipmentStrategy(ItemRegistry.ELYTRA.name())));
 
         return sb.toString();
     }
@@ -328,16 +338,20 @@ public class AutoEnchantCommand extends Command {
         String enchants = strategy.enchantments.isEmpty() ? "None" : String.join(", ", strategy.enchantments);
         return status + " " + enchants;
     }
-
-    // 获取装备类型的显示名称
+    
     private String getEquipmentDisplayName(String equipmentType) {
         return switch (equipmentType) {
-            case "sword" -> "钻石剑";
-            case "pickaxe" -> "钻石镐";
-            case "helmet" -> "钻石头盔";
-            case "chestplate" -> "钻石胸甲";
-            case "leggings" -> "钻石护腿";
-            case "boots" -> "钻石靴子";
+            case "sword" -> "Sword";
+            case "pickaxe" -> "Pickaxe";
+            case "axe" -> "Axe";
+            case "shovel" -> "Shovel";
+            case "hoe" -> "Hoe";
+            case "helmet" -> "Helmet";
+            case "chestplate" -> "Chestplate";
+            case "leggings" -> "Leggings";
+            case "boots" -> "Boots";
+            case "mace" -> "Mace";
+            case "elytra" -> "Elytra";
             default -> equipmentType;
         };
     }
